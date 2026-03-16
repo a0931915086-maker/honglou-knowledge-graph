@@ -10,14 +10,14 @@ let currentSelectedNode = null;
 document.addEventListener('DOMContentLoaded', function() {
     // 加载数据
     Promise.all([
-        fetchData('characters.json'),
-        fetchData('relationships.json'),
-        fetchData('events.json'),
-        fetchData('timeline.json'),
-        fetchData('ditems.json'),
-        fetchData('festivals.json'),
-        fetchData('poems.json'),
-        fetchData('dproverbs.json')
+        fetchData('data/characters.json'),
+        fetchData('data/relationships.json'),
+        fetchData('data/events.json'),
+        fetchData('data/timeline.json'),
+        fetchData('data/items.json'),
+        fetchData('data/festivals.json'),
+        fetchData('data/poems.json'),
+        fetchData('data/proverbs.json')
     ]).then(([chars, rels, evts, tml, items, festivals, poems, proverbs]) => {
         characters = chars;
         relationships = rels;
