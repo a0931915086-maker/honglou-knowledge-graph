@@ -1,0 +1,20 @@
+[
+  {
+    "source": "1",
+    "target": "2",
+    "type": "emotional",
+    "label": "青梅竹马"
+  },
+  {
+    "source": "1",
+    "target": "3",
+    "type": "marriage",
+    "label": "夫妻"
+  },
+  {
+    "source": "2",
+    "target": "3",
+    "type": "emotional",
+    "label": "表姐妹"
+  }
+]
