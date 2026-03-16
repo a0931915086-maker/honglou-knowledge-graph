@@ -1,8 +1,8 @@
 // 全局变量
-let characters = [];
+let characters =[];
 let relationships = [];
 let events = [];
-let timeline = [];
+let timeline =[];
 let currentGraph = null;
 let currentSelectedNode = null;
 
@@ -27,34 +27,44 @@ document.addEventListener('DOMContentLoaded', function() {
         // 更新统计数据
         updateStatistics();
         
-        // 初始化各个页面
+        // 初始化各个页面 (哪怕其中一个失败，也不要影响其他的)
         initNavigation();
         initHomePage();
         initCharacterGraph();
-        initTimeline();
-        initEvents();
-        initIndex();
-        initSearch();
+        
+        // 增加容错隔离：如果时间轴初始化报错，不会阻断后续代码
+        try { initTimeline(); } catch(e) { console.error('时间轴初始化跳过:', e); }
+        try { initEvents(); } catch(e) { console.error('事件初始化跳过:', e); }
+        try { initIndex(); } catch(e) { console.error('索引初始化跳过:', e); }
+        try { initSearch(); } catch(e) { console.error('搜索初始化跳过:', e); }
         
         // 显示首页
         showSection('home');
     }).catch(error => {
-        console.error('加载数据失败:', error);
-        alert('加载数据失败，请检查data目录下是否有正确的JSON文件');
+        console.error('加载核心数据失败:', error);
+        alert('加载数据失败，请按F12查看控制台报错详情');
     });
 });
 
-// 数据加载
+// 数据加载 (带容错机制)
 async function fetchData(url) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`无法加载: ${url}`);
-    return await response.json();
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`⚠️ 提示: 找不到文件 ${url} (状态码: ${response.status})。将使用空数据继续。`);
+            return[]; 
+        }
+        return await response.json();
+    } catch (error) {
+        console.warn(`⚠️ 提示: 网络请求异常 ${url}`, error);
+        return[]; 
+    }
 }
 
 // 更新统计数据
 function updateStatistics() {
-    document.getElementById('character-count').textContent = characters.length;
-    document.getElementById('relationship-count').textContent = relationships.length;
+    document.getElementById('character-count').textContent = Array.isArray(characters) ? characters.length : 0;
+    document.getElementById('relationship-count').textContent = Array.isArray(relationships) ? relationships.length : 0;
 }
 
 // 导航初始化
@@ -65,11 +75,9 @@ function initNavigation() {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
             
-            // 更新激活状态
             navLinks.forEach(l => l.classList.remove('active'));
             this.classList.add('active');
             
-            // 显示对应部分
             showSection(target);
         });
     });
@@ -77,18 +85,15 @@ function initNavigation() {
 
 // 显示对应部分
 function showSection(sectionId) {
-    // 隐藏所有部分
     document.querySelectorAll('.page-section').forEach(section => {
         section.classList.remove('active');
     });
     
-    // 显示目标部分
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
     }
     
-    // 如果是图谱页面，重新计算布局
     if (sectionId === 'characters' && currentGraph) {
         setTimeout(() => {
             currentGraph.centerGraph();
@@ -98,18 +103,16 @@ function showSection(sectionId) {
 
 // 首页初始化
 function initHomePage() {
-    // 快速链接
     const quickLinks = document.querySelectorAll('.link-card');
     quickLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
             
-            // 更新导航状态
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelector(`.nav-link[href="#${target}"]`).classList.add('active');
+            const targetLink = document.querySelector(`.nav-link[href="#${target}"]`);
+            if(targetLink) targetLink.classList.add('active');
             
-            // 显示对应部分
             showSection(target);
         });
     });
@@ -117,10 +120,12 @@ function initHomePage() {
 
 // 人物关系图初始化
 function initCharacterGraph() {
-    const width = document.querySelector('#relationship-graph').offsetWidth;
-    const height = document.querySelector('#relationship-graph').offsetHeight;
+    const graphElement = document.querySelector('#relationship-graph');
+    if (!graphElement || characters.length === 0) return;
+
+    const width = graphElement.offsetWidth;
+    const height = graphElement.offsetHeight;
     
-    // 创建力导向图
     const svg = d3.select('#relationship-graph')
         .append('svg')
         .attr('width', width)
@@ -132,7 +137,6 @@ function initCharacterGraph() {
     
     const svgGroup = svg.append('g');
     
-    // 定义箭头
     svg.append('defs').append('marker')
         .attr('id', 'arrowhead')
         .attr('viewBox', '-0 -5 10 10')
@@ -147,14 +151,12 @@ function initCharacterGraph() {
         .attr('fill', '#999')
         .style('stroke', 'none');
     
-    // 创建力模拟
     const simulation = d3.forceSimulation()
         .force('link', d3.forceLink().id(d => d.id).distance(100))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(50));
     
-    // 创建图数据结构
     const nodes = characters.map(char => ({
         id: char.id,
         name: char.name,
@@ -170,7 +172,6 @@ function initCharacterGraph() {
         label: rel.label
     }));
     
-    // 创建连线
     const link = svgGroup.append('g')
         .selectAll('line')
         .data(links)
@@ -181,7 +182,6 @@ function initCharacterGraph() {
         .attr('stroke-width', 2)
         .attr('marker-end', 'url(#arrowhead)');
     
-    // 创建连线标签
     const linkLabels = svgGroup.append('g')
         .selectAll('text')
         .data(links)
@@ -193,7 +193,6 @@ function initCharacterGraph() {
         .attr('fill', '#666')
         .attr('text-anchor', 'middle');
     
-    // 创建节点
     const node = svgGroup.append('g')
         .selectAll('.node')
         .data(nodes)
@@ -205,14 +204,12 @@ function initCharacterGraph() {
             .on('drag', dragged)
             .on('end', dragended));
     
-    // 添加节点圆圈
     node.append('circle')
         .attr('r', 20)
         .attr('fill', d => getNodeColor(d.type))
         .attr('stroke', '#fff')
         .attr('stroke-width', 2);
     
-    // 添加节点文字
     node.append('text')
         .attr('class', 'node-label')
         .text(d => d.name)
@@ -222,40 +219,39 @@ function initCharacterGraph() {
         .attr('fill', '#333')
         .style('pointer-events', 'none');
     
-    // 添加点击事件
     node.on('click', (event, d) => {
         showCharacterDetail(d);
         highlightConnections(d.id);
     });
     
-    // 更新力模拟
     simulation.nodes(nodes).on('tick', ticked);
     simulation.force('link').links(links);
     
-    // 添加双击重置事件
     svg.on('dblclick.zoom', () => {
         svgGroup.transition().duration(750)
             .attr('transform', 'translate(0,0) scale(1)');
     });
     
-    // 过滤器
-    document.getElementById('relation-filter').addEventListener('change', function() {
+    const relationFilter = document.getElementById('relation-filter');
+    const familyFilter = document.getElementById('family-filter');
+    const resetViewBtn = document.getElementById('reset-view');
+
+    if(relationFilter) relationFilter.addEventListener('change', function() {
         const type = this.value;
-        filterGraph(type, document.getElementById('family-filter').value);
+        filterGraph(type, document.getElementById('family-filter') ? document.getElementById('family-filter').value : 'all');
     });
     
-    document.getElementById('family-filter').addEventListener('change', function() {
+    if(familyFilter) familyFilter.addEventListener('change', function() {
         const family = this.value;
-        filterGraph(document.getElementById('relation-filter').value, family);
+        filterGraph(document.getElementById('relation-filter') ? document.getElementById('relation-filter').value : 'all', family);
     });
     
-    document.getElementById('reset-view').addEventListener('click', () => {
+    if(resetViewBtn) resetViewBtn.addEventListener('click', () => {
         svgGroup.transition().duration(750)
             .attr('transform', 'translate(0,0) scale(1)');
         resetFilters();
     });
     
-    // 工具函数
     function ticked() {
         link.attr('x1', d => d.source.x)
             .attr('y1', d => d.source.y)
@@ -317,12 +313,18 @@ function initCharacterGraph() {
     
     function showCharacterDetail(character) {
         const detailPanel = document.getElementById('character-detail');
+        if(!detailPanel) return;
+
         const connections = relationships.filter(r => 
+            (r.source && r.source.id === character.id) || 
+            (r.target && r.target.id === character.id) ||
             r.source === character.id || r.target === character.id
         );
         
         const relatedCharacters = connections.map(conn => {
-            const otherId = conn.source === character.id ? conn.target : conn.source;
+            const sourceId = conn.source.id || conn.source;
+            const targetId = conn.target.id || conn.target;
+            const otherId = sourceId === character.id ? targetId : sourceId;
             const otherChar = characters.find(c => c.id === otherId);
             return otherChar ? {
                 name: otherChar.name,
@@ -386,102 +388,40 @@ function initCharacterGraph() {
         
         currentSelectedNode = character;
         
-        // 添加样式
-        const style = document.createElement('style');
-        style.textContent = `
-            .character-detail { padding: 1rem; }
-            .character-header { 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-                margin-bottom: 1rem; 
-                padding-bottom: 0.5rem; 
-                border-bottom: 1px solid #eee; 
-            }
-            .character-type { 
-                background: ${getNodeColor(character.type)}; 
-                color: white; 
-                padding: 0.25rem 0.75rem; 
-                border-radius: 20px; 
-                font-size: 0.8rem; 
-            }
-            .character-desc { 
-                color: #666; 
-                margin-bottom: 1rem; 
-                line-height: 1.6; 
-            }
-            .character-info { 
-                background: #f8f9fa; 
-                padding: 1rem; 
-                border-radius: 4px; 
-                margin-bottom: 1rem; 
-            }
-            .info-item { 
-                margin-bottom: 0.5rem; 
-                display: flex; 
-            }
-            .info-item strong { 
-                min-width: 60px; 
-                color: #333; 
-            }
-            .relationships h4, .character-events h4 { 
-                color: #333; 
-                margin-bottom: 0.5rem; 
-            }
-            .relationship-list, .event-list { 
-                max-height: 200px; 
-                overflow-y: auto; 
-            }
-            .relationship-item, .event-item { 
-                padding: 0.5rem; 
-                background: white; 
-                border: 1px solid #eee; 
-                border-radius: 4px; 
-                margin-bottom: 0.5rem; 
-                display: flex; 
-                justify-content: space-between; 
-                align-items: center; 
-            }
-            .rel-name { 
-                font-weight: bold; 
-                color: #333; 
-            }
-            .rel-type { 
-                font-size: 0.8rem; 
-                padding: 0.1rem 0.5rem; 
-                border-radius: 3px; 
-                background: #f0f0f0; 
-            }
-            .rel-type.blood { background: #f8d7da; color: #721c24; }
-            .rel-type.marriage { background: #d4edda; color: #155724; }
-            .rel-type.master-servant { background: #fff3cd; color: #856404; }
-            .rel-type.emotional { background: #d1ecf1; color: #0c5460; }
-        `;
-        detailPanel.appendChild(style);
-    }
-    
-    function getTypeLabel(type) {
-        const labels = {
-            'main': '主要人物',
-            'major': '重要人物',
-            'minor': '次要人物',
-            'other': '其他人物'
-        };
-        return labels[type] || '未分类';
+        if (!document.getElementById('char-detail-styles')) {
+            const style = document.createElement('style');
+            style.id = 'char-detail-styles';
+            style.textContent = `
+                .character-detail { padding: 1rem; }
+                .character-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee; }
+                .character-type { color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; background: #6c757d;}
+                .character-desc { color: #666; margin-bottom: 1rem; line-height: 1.6; }
+                .character-info { background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+                .info-item { margin-bottom: 0.5rem; display: flex; }
+                .info-item strong { min-width: 60px; color: #333; }
+                .relationships h4, .character-events h4 { color: #333; margin-bottom: 0.5rem; }
+                .relationship-list, .event-list { max-height: 200px; overflow-y: auto; }
+                .relationship-item, .event-item { padding: 0.5rem; background: white; border: 1px solid #eee; border-radius: 4px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+                .rel-name { font-weight: bold; color: #333; }
+                .rel-type { font-size: 0.8rem; padding: 0.1rem 0.5rem; border-radius: 3px; background: #f0f0f0; }
+                .rel-type.blood { background: #f8d7da; color: #721c24; }
+                .rel-type.marriage { background: #d4edda; color: #155724; }
+                .rel-type.master-servant { background: #fff3cd; color: #856404; }
+                .rel-type.emotional { background: #d1ecf1; color: #0c5460; }
+            `;
+            document.head.appendChild(style);
+        }
     }
     
     function highlightConnections(characterId) {
-        // 重置所有节点和连线
         svgGroup.selectAll('.node circle').attr('stroke', '#fff').attr('stroke-width', 2);
         svgGroup.selectAll('line').attr('stroke-width', 2);
         
-        // 高亮选中的节点
         svgGroup.selectAll('.node').filter(d => d.id === characterId)
             .select('circle')
             .attr('stroke', '#ff6b6b')
             .attr('stroke-width', 3);
         
-        // 高亮相关连线
         const relatedLinks = links.filter(link => 
             link.source.id === characterId || link.target.id === characterId
         );
@@ -495,7 +435,7 @@ function initCharacterGraph() {
     
     function filterGraph(relationType, family) {
         let filteredLinks = [...links];
-        let filteredNodes = [...nodes];
+        let filteredNodes =[...nodes];
         
         if (relationType !== 'all') {
             filteredLinks = filteredLinks.filter(link => link.type === relationType);
@@ -513,7 +453,6 @@ function initCharacterGraph() {
             );
         }
         
-        // 更新图
         const remainingNodeIds = new Set();
         filteredLinks.forEach(link => {
             remainingNodeIds.add(link.source.id);
@@ -524,7 +463,6 @@ function initCharacterGraph() {
             filteredNodes = nodes.filter(node => remainingNodeIds.has(node.id));
         }
         
-        // 更新显示
         node.style('display', d => 
             filteredNodes.some(n => n.id === d.id) ? 'block' : 'none'
         );
@@ -539,21 +477,19 @@ function initCharacterGraph() {
     }
     
     function resetFilters() {
-        document.getElementById('relation-filter').value = 'all';
-        document.getElementById('family-filter').value = 'all';
+        if(document.getElementById('relation-filter')) document.getElementById('relation-filter').value = 'all';
+        if(document.getElementById('family-filter')) document.getElementById('family-filter').value = 'all';
         
         node.style('display', 'block');
         link.style('display', 'block');
         linkLabels.style('display', 'block');
     }
     
-    // 保存图实例
     currentGraph = {
         svg,
         simulation,
         centerGraph: () => {
             svgGroup.transition().duration(750)
-                .attr('transform', `translate(0,0) scale(1)`)
                 .attr('transform', `translate(${width/2},${height/2}) scale(1)`)
                 .transition()
                 .attr('transform', 'translate(0,0) scale(1)');
@@ -561,88 +497,108 @@ function initCharacterGraph() {
     };
 }
 
-// 时间轴初始化
+// 时间轴初始化 (✨ 已完美修复 NaN 报错问题)
 function initTimeline() {
     const container = document.getElementById('timeline-container');
+    if(!container || timeline.length === 0) return;
     
-    // 创建时间轴数据
-    const timelineData = timeline.map(item => ({
-        id: item.id,
-        content: item.event,
-        start: item.year + '-01-01',
-        end: item.year + '-12-31',
-        type: 'range',
-        className: item.type || 'default',
-        title: item.chapter || '',
-        description: item.description || ''
-    }));
-    
-    // 创建时间轴选项
-    const options = {
-        width: '100%',
-        height: '100%',
-        min: '1-01-01',
-        max: '15-12-31',
-        start: '1-01-01',
-        end: '15-12-31',
-        zoomMin: 1000 * 60 * 60 * 24 * 365, // 1年
-        zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, // 20年
-        moveable: true,
-        zoomable: true,
-        orientation: {
-            axis: 'both',
-            item: 'top'
-        },
-        tooltip: {
-            followMouse: true,
-            overflowMethod: 'cap'
-        },
-        format: {
-            minorLabels: {
-                year: 'YYYY年'
+    try {
+        // 创建时间轴数据
+        const timelineData = timeline.map(item => {
+            // ⭐ 关键修复: 将 1, 15 这样的年份强制补齐为 4 位数的标准格式 "0001", "0015"
+            // 否则 Date.parse 解析会失败并返回 NaN
+            const yearNum = parseInt(item.year) || 1;
+            const yearStr = String(yearNum).padStart(4, '0');
+
+            return {
+                id: item.id,
+                content: item.event,
+                start: `${yearStr}-01-01`,  // 变成了标准的 '0001-01-01'
+                end: `${yearStr}-12-31`,    // 变成了标准的 '0001-12-31'
+                type: 'range',
+                className: item.type || 'default',
+                title: item.chapter || '',
+                description: item.description || ''
+            };
+        });
+        
+        // 创建时间轴选项
+        const options = {
+            width: '100%',
+            height: '100%',
+            // ⭐ 关键修复: 这里也必须使用标准的 4 位数年份
+            min: '0001-01-01',
+            max: '0020-12-31', 
+            start: '0001-01-01',
+            end: '0015-12-31',
+            zoomMin: 1000 * 60 * 60 * 24 * 365, 
+            zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, 
+            moveable: true,
+            zoomable: true,
+            orientation: {
+                axis: 'both',
+                item: 'top'
+            },
+            tooltip: {
+                followMouse: true,
+                overflowMethod: 'cap'
+            },
+            format: {
+                minorLabels: {
+                    year: 'YYYY年'
+                }
             }
+        };
+        
+        if (typeof vis !== 'undefined') {
+            const timelineInstance = new vis.Timeline(container, timelineData, options);
+            
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const fitBtn = document.getElementById('fit-timeline');
+
+            if(zoomInBtn) zoomInBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 0.7;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 1.3;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(fitBtn) fitBtn.addEventListener('click', () => {
+                timelineInstance.fit();
+            });
+            
+            timelineInstance.on('click', function(properties) {
+                if (properties.item) {
+                    const item = timelineData.find(d => d.id == properties.item);
+                    if (item) showEventModal(item);
+                }
+            });
         }
-    };
-    
-    // 创建时间轴
-    const timelineInstance = new vis.Timeline(container, timelineData, options);
-    
-    // 添加控制
-    document.getElementById('zoom-in').addEventListener('click', () => {
-        const range = timelineInstance.getWindow();
-        const zoom = (range.end - range.start) * 0.7;
-        const center = (range.start + range.end) / 2;
-        timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-    });
-    
-    document.getElementById('zoom-out').addEventListener('click', () => {
-        const range = timelineInstance.getWindow();
-        const zoom = (range.end - range.start) * 1.3;
-        const center = (range.start + range.end) / 2;
-        timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-    });
-    
-    document.getElementById('fit-timeline').addEventListener('click', () => {
-        timelineInstance.fit();
-    });
-    
-    // 添加点击事件
-    timelineInstance.on('click', function(properties) {
-        if (properties.item) {
-            const item = timelineData.find(d => d.id == properties.item);
-            if (item) {
-                showEventModal(item);
-            }
-        }
-    });
+    } catch (err) {
+        console.error("时间轴渲染出错:", err);
+        container.innerHTML = `<p style="color:red;text-align:center;padding:20px;">时间轴加载失败: ${err.message}</p>`;
+    }
 }
 
 // 事件页面初始化
 function initEvents() {
     const container = document.getElementById('events-container');
+    if(!container) return;
     
-    // 渲染事件卡片
     function renderEvents(filteredEvents = events) {
+        if(filteredEvents.length === 0) {
+            container.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">暂无相关事件数据</p>';
+            return;
+        }
+
         container.innerHTML = filteredEvents.map(event => `
             <div class="event-card" data-id="${event.id}">
                 <div class="event-category">${getEventCategoryLabel(event.category)}</div>
@@ -651,67 +607,58 @@ function initEvents() {
                     <i class="fas fa-clock"></i>
                     <span>第${event.year}年 · ${event.season} · ${event.chapter}</span>
                 </div>
-                <p>${event.description.substring(0, 100)}...</p>
+                <p>${event.description ? event.description.substring(0, 100) : ''}...</p>
                 <div class="event-characters">
-                    ${event.characters ? `
+                    ${event.characters && event.characters.length > 0 ? `
                     <small>涉及人物: ${event.characters.slice(0, 3).join('、')}${event.characters.length > 3 ? '等' : ''}</small>
                     ` : ''}
                 </div>
             </div>
         `).join('');
         
-        // 添加点击事件
         document.querySelectorAll('.event-card').forEach(card => {
             card.addEventListener('click', () => {
                 const eventId = card.getAttribute('data-id');
                 const event = events.find(e => e.id == eventId);
-                if (event) {
-                    showEventModal(event);
-                }
+                if (event) showEventModal(event);
             });
         });
     }
     
-    // 初始渲染
     renderEvents();
     
-    // 搜索功能
-    document.getElementById('event-search').addEventListener('input', function() {
+    const searchInput = document.getElementById('event-search');
+    const categorySelect = document.getElementById('event-category');
+
+    if(searchInput) searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
-        const category = document.getElementById('event-category').value;
+        const category = categorySelect ? categorySelect.value : 'all';
         
         const filtered = events.filter(event => {
-            const matchesSearch = event.title.toLowerCase().includes(searchTerm) ||
-                                event.description.toLowerCase().includes(searchTerm) ||
+            const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm) ||
+                                (event.description || '').toLowerCase().includes(searchTerm) ||
                                 (event.characters && event.characters.some(char => 
                                     char.toLowerCase().includes(searchTerm)
                                 ));
-            
             const matchesCategory = category === 'all' || event.category === category;
-            
             return matchesSearch && matchesCategory;
         });
-        
         renderEvents(filtered);
     });
     
-    // 分类过滤
-    document.getElementById('event-category').addEventListener('change', function() {
-        const searchTerm = document.getElementById('event-search').value.toLowerCase();
+    if(categorySelect) categorySelect.addEventListener('change', function() {
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
         const category = this.value;
         
         const filtered = events.filter(event => {
-            const matchesSearch = event.title.toLowerCase().includes(searchTerm) ||
-                                event.description.toLowerCase().includes(searchTerm) ||
+            const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm) ||
+                                (event.description || '').toLowerCase().includes(searchTerm) ||
                                 (event.characters && event.characters.some(char => 
                                     char.toLowerCase().includes(searchTerm)
                                 ));
-            
             const matchesCategory = category === 'all' || event.category === category;
-            
             return matchesSearch && matchesCategory;
         });
-        
         renderEvents(filtered);
     });
 }
@@ -719,113 +666,109 @@ function initEvents() {
 // 索引初始化
 function initIndex() {
     const tabBtns = document.querySelectorAll('.tab-btn');
+    if(tabBtns.length === 0) return;
     
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
             
-            // 更新按钮状态
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // 显示对应标签页
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('active');
             });
-            document.getElementById(`${tabId}-tab`).classList.add('active');
+            const activeTab = document.getElementById(`${tabId}-tab`);
+            if(activeTab) activeTab.classList.add('active');
             
-            // 加载数据
             loadIndexData(tabId);
         });
     });
     
-    // 加载初始数据
     loadIndexData('persons');
 }
 
 // 加载索引数据
 async function loadIndexData(type) {
-    const container = document.querySelector(`#${type}-tab .index-grid`);
-    
+    const tabElement = document.querySelector(`#${type}-tab .index-grid`);
+    if(!tabElement) return;
+
     try {
-        let data = [];
+        let data =[];
         let template = '';
         
         switch(type) {
             case 'persons':
                 data = characters;
-                template = (item, index) => `
+                template = (item) => `
                     <div class="index-item" data-id="${item.id}" data-type="character">
                         <h4>${item.name}</h4>
                         <p><strong>身份:</strong> ${item.identity || '未指定'}</p>
                         <p><strong>家族:</strong> ${item.family || '未指定'}</p>
-                        ${item.description ? `<p>${item.description.substring(0, 50)}...</p>` : ''}
                     </div>
                 `;
                 break;
                 
             case 'items':
                 data = await fetchData('data/items.json');
-                template = (item, index) => `
+                template = (item) => `
                     <div class="index-item" data-id="${item.id}" data-type="item">
                         <h4>${item.name}</h4>
                         <p><strong>类别:</strong> ${item.category || '未分类'}</p>
                         <p><strong>所有者:</strong> ${item.owner || '未指定'}</p>
-                        <p>${item.description.substring(0, 60)}...</p>
                     </div>
                 `;
                 break;
                 
             case 'festivals':
                 data = await fetchData('data/festivals.json');
-                template = (item, index) => `
+                template = (item) => `
                     <div class="index-item" data-id="${item.id}" data-type="festival">
                         <h4>${item.name}</h4>
                         <p><strong>时间:</strong> ${item.time || '未指定'}</p>
                         <p><strong>章节:</strong> ${item.chapter || '未指定'}</p>
-                        <p>${item.description.substring(0, 60)}...</p>
                     </div>
                 `;
                 break;
                 
             case 'poems':
                 data = await fetchData('data/poems.json');
-                template = (item, index) => `
+                template = (item) => `
                     <div class="index-item" data-id="${item.id}" data-type="poem">
                         <h4>${item.title}</h4>
                         <p><strong>作者:</strong> ${item.author || '未指定'}</p>
                         <p><strong>章节:</strong> ${item.chapter || '未指定'}</p>
-                        <p>${item.content.substring(0, 60)}...</p>
                     </div>
                 `;
                 break;
                 
             case 'proverbs':
                 data = await fetchData('data/proverbs.json');
-                template = (item, index) => `
+                template = (item) => `
                     <div class="index-item" data-id="${item.id}" data-type="proverb">
                         <h4>${item.phrase}</h4>
                         <p><strong>出处:</strong> ${item.source || '未指定'}</p>
-                        <p><strong>含义:</strong> ${item.meaning.substring(0, 60)}...</p>
                     </div>
                 `;
                 break;
         }
         
-        container.innerHTML = data.slice(0, 50).map(template).join('');
-        
-        // 添加点击事件
-        container.querySelectorAll('.index-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const itemId = item.getAttribute('data-id');
-                const itemType = item.getAttribute('data-type');
-                showIndexItemDetail(itemId, itemType);
+        if (!data || data.length === 0) {
+            tabElement.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color:#999;">该分类暂无数据</p>';
+        } else {
+            tabElement.innerHTML = data.slice(0, 50).map(template).join('');
+            
+            tabElement.querySelectorAll('.index-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const itemId = item.getAttribute('data-id');
+                    const itemType = item.getAttribute('data-type');
+                    showIndexItemDetail(itemId, itemType);
+                });
             });
-        });
-        
+        }
     } catch (error) {
         console.error(`加载${type}数据失败:`, error);
-        container.innerHTML = '<p class="error">加载数据失败，请稍后重试</p>';
+        tabElement.innerHTML = '<p class="error">加载数据失败</p>';
     }
 }
 
@@ -833,16 +776,16 @@ async function loadIndexData(type) {
 function initSearch() {
     const searchInput = document.getElementById('global-search');
     const searchBtn = document.getElementById('search-btn');
+    if(!searchInput || !searchBtn) return;
     
     function performSearch() {
         const query = searchInput.value.trim().toLowerCase();
         if (!query) return;
         
-        // 搜索所有数据类型
         const allData = [
-            ...characters.map(c => ({...c, type: 'character'})),
-            ...events.map(e => ({...e, type: 'event'})),
-            ...timeline.map(t => ({...t, type: 'timeline'}))
+            ...(characters || []).map(c => ({...c, type: 'character'})),
+            ...(events ||[]).map(e => ({...e, type: 'event'})),
+            ...(timeline ||[]).map(t => ({...t, type: 'timeline'}))
         ];
         
         const results = allData.filter(item => {
@@ -869,6 +812,7 @@ function showSearchResults(results, query) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
     
     modalTitle.textContent = `搜索: "${query}" (${results.length}个结果)`;
     
@@ -878,16 +822,14 @@ function showSearchResults(results, query) {
         modalBody.innerHTML = `
             <div class="search-results">
                 ${results.slice(0, 20).map(item => `
-                    <div class="search-result-item" data-id="${item.id}" data-type="${item.type}">
+                    <div class="search-result-item" data-id="${item.id}" data-type="${item.type}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
                         <h4>${item.name || item.title || item.event || '未命名'}</h4>
                         <p><small>类型: ${getTypeLabel(item.type)}</small></p>
-                        <p>${(item.description || item.content || '').substring(0, 100)}...</p>
                     </div>
                 `).join('')}
             </div>
         `;
         
-        // 添加点击事件
         modalBody.querySelectorAll('.search-result-item').forEach(item => {
             item.addEventListener('click', () => {
                 const itemId = item.getAttribute('data-id');
@@ -895,32 +837,21 @@ function showSearchResults(results, query) {
                 modal.classList.remove('active');
                 
                 if (itemType === 'character') {
-                    const character = characters.find(c => c.id == itemId);
-                    if (character) {
-                        showSection('characters');
-                        // 这里需要找到图节点并触发点击
-                        // 简化实现：显示在详情面板
-                        const detailPanel = document.getElementById('character-detail');
-                        // 触发显示详情
-                        setTimeout(() => {
-                            if (currentGraph) {
-                                // 模拟点击图节点
-                                d3.select('#relationship-graph').selectAll('.node')
-                                    .filter(d => d.id == itemId)
-                                    .dispatch('click');
-                            }
-                        }, 100);
-                    }
+                    showSection('characters');
+                    setTimeout(() => {
+                        if (currentGraph) {
+                            d3.select('#relationship-graph').selectAll('.node')
+                                .filter(d => d.id == itemId)
+                                .dispatch('click');
+                        }
+                    }, 100);
                 } else if (itemType === 'event') {
                     const event = events.find(e => e.id == itemId);
-                    if (event) {
-                        showEventModal(event);
-                    }
+                    if (event) showEventModal(event);
                 }
             });
         });
     }
-    
     modal.classList.add('active');
 }
 
@@ -929,45 +860,23 @@ function showEventModal(event) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
     
-    modalTitle.textContent = event.title;
+    modalTitle.textContent = event.title || event.event || '事件详情';
     
     modalBody.innerHTML = `
         <div class="event-modal-content">
-            <div class="event-meta">
-                <div class="meta-item">
-                    <i class="fas fa-calendar"></i>
-                    <span>时间: 第${event.year}年 · ${event.season}</span>
-                </div>
-                <div class="meta-item">
-                    <i class="fas fa-book-open"></i>
-                    <span>章节: ${event.chapter}</span>
-                </div>
-                <div class="meta-item">
-                    <i class="fas fa-tag"></i>
-                    <span>分类: ${getEventCategoryLabel(event.category)}</span>
-                </div>
+            <div class="event-meta" style="display:flex; gap:15px; margin-bottom:15px; color:#666;">
+                <div class="meta-item"><i class="fas fa-calendar"></i> 年份: 第${event.year}年</div>
+                ${event.chapter ? `<div class="meta-item"><i class="fas fa-book-open"></i> 章节: ${event.chapter}</div>` : ''}
             </div>
-            
             <div class="event-content">
-                <h4>事件描述</h4>
-                <p>${event.description}</p>
-                
+                <h4>描述</h4>
+                <p>${event.description || event.content || '暂无描述'}</p>
                 ${event.characters && event.characters.length > 0 ? `
-                <div class="event-characters-list">
+                <div style="margin-top:15px;">
                     <h4>涉及人物</h4>
-                    <div class="character-tags">
-                        ${event.characters.map(char => `
-                            <span class="character-tag">${char}</span>
-                        `).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${event.significance ? `
-                <div class="event-significance">
-                    <h4>事件意义</h4>
-                    <p>${event.significance}</p>
+                    <p>${event.characters.join('、')}</p>
                 </div>
                 ` : ''}
             </div>
@@ -976,16 +885,18 @@ function showEventModal(event) {
     
     modal.classList.add('active');
     
-    // 添加模态框关闭事件
-    modal.querySelector('.close-modal').addEventListener('click', () => {
-        modal.classList.remove('active');
-    });
+    const closeBtn = modal.querySelector('.close-modal');
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+        closeBtn.dataset.bound = true;
+    }
     
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-        }
-    });
+    if (!modal.dataset.bound) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+        modal.dataset.bound = true;
+    }
 }
 
 // 显示索引项详情
@@ -993,42 +904,31 @@ function showIndexItemDetail(itemId, itemType) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
     
-    // 这里需要根据itemType从对应的数据中查找
-    // 简化实现：显示一个通用的详情页面
     modalTitle.textContent = '项目详情';
     modalBody.innerHTML = `
         <div class="index-item-detail">
-            <p>ID: ${itemId}</p>
-            <p>类型: ${getTypeLabel(itemType)}</p>
-            <p>详细功能需要连接数据库实现。</p>
+            <p><strong>类型:</strong> ${getTypeLabel(itemType)}</p>
+            <p><strong>更多详情:</strong> 此处可扩展详细信息</p>
         </div>
     `;
-    
     modal.classList.add('active');
 }
 
 // 辅助函数
 function getEventCategoryLabel(category) {
     const labels = {
-        'family': '家族兴衰',
-        'love': '情感主线',
-        'fate': '命运转折',
-        'social': '社会事件',
-        'default': '其他事件'
+        'family': '家族兴衰', 'love': '情感主线', 'fate': '命运转折',
+        'social': '社会事件', 'default': '其他事件'
     };
-    return labels[category] || category;
+    return labels[category] || category || '未分类';
 }
 
 function getTypeLabel(type) {
     const labels = {
-        'character': '人物',
-        'event': '事件',
-        'timeline': '时间轴',
-        'item': '器物',
-        'festival': '节日',
-        'poem': '诗词',
-        'proverb': '俗语'
+        'character': '人物', 'event': '事件', 'timeline': '时间轴',
+        'item': '器物', 'festival': '节日', 'poem': '诗词', 'proverb': '俗语'
     };
     return labels[type] || type;
 }
