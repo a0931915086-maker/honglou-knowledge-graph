@@ -10,14 +10,14 @@ let currentSelectedNode = null;
 document.addEventListener('DOMContentLoaded', function() {
     // 加载数据
     Promise.all([
-        fetchData('data/characters.json'),
-        fetchData('data/relationships.json'),
-        fetchData('data/events.json'),
-        fetchData('data/timeline.json'),
-        fetchData('data/items.json'),
-        fetchData('data/festivals.json'),
-        fetchData('data/poems.json'),
-        fetchData('data/proverbs.json')
+        fetchData('honglou-knowledge-graph/blob/main/data/events.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/relationships.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/events.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/timeline.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/items.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/festivals.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/poems.json'),
+        fetchData('honglou-knowledge-graph/blob/main/data/proverbs.json')
     ]).then(([chars, rels, evts, tml, items, festivals, poems, proverbs]) => {
         characters = chars;
         relationships = rels;
