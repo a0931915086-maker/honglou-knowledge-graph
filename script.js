@@ -10,14 +10,14 @@ let currentSelectedNode = null;
 document.addEventListener('DOMContentLoaded', function() {
     // 加载数据
     Promise.all([
-        fetchData('honglou-knowledge-graph/main/data/events.json'),
-        fetchData('honglou-knowledge-graph/main/data/relationships.json'),
-        fetchData('honglou-knowledge-graph/main/data/events.json'),
-        fetchData('honglou-knowledge-graph/main/data/timeline.json'),
-        fetchData('honglou-knowledge-graph/main/data/items.json'),
-        fetchData('honglou-knowledge-graph/main/data/festivals.json'),
-        fetchData('honglou-knowledge-graph/main/data/poems.json'),
-        fetchData('honglou-knowledge-graph/main/data/proverbs.json')
+        fetchData('data/characters.json'),
+        fetchData('data/relationships.json'),
+        fetchData('data/events.json'),
+        fetchData('data/timeline.json'),
+        fetchData('data/items.json'),
+        fetchData('data/festivals.json'),
+        fetchData('data/poems.json'),
+        fetchData('data/proverbs.json')
     ]).then(([chars, rels, evts, tml, items, festivals, poems, proverbs]) => {
         characters = chars;
         relationships = rels;
@@ -1031,4 +1031,41 @@ function getTypeLabel(type) {
         'proverb': '俗语'
     };
     return labels[type] || type;
+}
+// script.js - 替换数据加载部分
+const isGitHub = window.location.hostname.includes('github.io') || 
+                 window.location.hostname.includes('github.com');
+
+function getDataPath(filename) {
+    if (isGitHub) {
+        // GitHub Pages路径
+        const repoName = window.location.pathname.split('/')[1] || 'honglou-knowledge-graph';
+        return `/${repoName}/data/${filename}`;
+    } else {
+        // 本地开发路径
+        return `data/${filename}`;
+    }
+}
+
+// 修改加载函数
+async function fetchData(filename) {
+    const path = getDataPath(filename);
+    try {
+        const response = await fetch(path);
+        if (!response.ok) {
+            // 尝试备用路径
+            const altPath = `./data/${filename}`;
+            const altResponse = await fetch(altPath);
+            if (!altResponse.ok) {
+                throw new Error(`无法加载: ${path} 和 ${altPath}`);
+            }
+            return await altResponse.json();
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`加载 ${filename} 失败:`, error);
+        
+        // 返回空数据避免崩溃
+        return getFallbackData(filename);
+    }
 }
