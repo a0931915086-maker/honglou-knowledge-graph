@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "year": 1,
+    "event": "黛玉进府",
+    "type": "family",
+    "chapter": "第三回"
+  },
+  {
+    "id": "2",
+    "year": 3,
+    "event": "元妃省亲",
+    "type": "family",
+    "chapter": "第十八回"
+  }
+]
