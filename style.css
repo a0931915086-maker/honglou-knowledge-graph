@@ -609,6 +609,50 @@ select, input[type="text"] {
     animation: slideIn 0.3s ease;
 }
 
+/* 人物图谱 SVG 专用样式 */
+#relationship-graph svg {
+    cursor: grab;
+    background-color: #ffffff;
+}
+
+#relationship-graph svg:active {
+    cursor: grabbing;
+}
+
+.node {
+    cursor: pointer;
+}
+
+.node circle {
+    transition: r 0.2s;
+}
+
+.node:hover circle {
+    r: 25;
+    filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
+}
+
+.node text {
+    font-weight: bold;
+    pointer-events: none; /* 防止文字干扰点击 */
+    text-shadow: 1px 1px 0px #fff, -1px -1px 0px #fff;
+}
+
+line.link {
+    stroke-opacity: 0.6;
+    stroke-dasharray: none;
+}
+
+/* 详情面板美化 */
+.character-detail-info {
+    animation: fadeIn 0.4s ease;
+}
+
+.character-detail-info p {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
 @keyframes slideIn {
     from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
