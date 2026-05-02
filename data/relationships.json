@@ -12,33 +12,159 @@
     "label": "夫妻"
   },
   {
-    "source": "2",
-    "target": "3",
-    "type": "emotional",
-    "label": "表姐妹"
+    "source": "1",
+    "target": "4",
+    "type": "blood",
+    "label": "姐弟"
   },
   {
     "source": "1",
-    "target": "4",
+    "target": "5",
+    "type": "blood",
+    "label": "兄妹"
+  },
+  {
+    "source": "1",
+    "target": "9",
     "type": "family",
     "label": "堂嫂弟"
   },
   {
     "source": "1",
-    "target": "5",
+    "target": "11",
+    "type": "family",
+    "label": "叔嫂"
+  },
+  {
+    "source": "1",
+    "target": "15",
+    "type": "servant",
+    "label": "主仆"
+  },
+  {
+    "source": "1",
+    "target": "16",
+    "type": "servant",
+    "label": "主仆"
+  },
+  {
+    "source": "1",
+    "target": "17",
     "type": "blood",
     "label": "祖孙"
   },
   {
+    "source": "1",
+    "target": "18",
+    "type": "blood",
+    "label": "父子"
+  },
+  {
+    "source": "1",
+    "target": "21",
+    "type": "blood",
+    "label": "母子"
+  },
+  {
     "source": "2",
-    "target": "5",
+    "target": "3",
+    "type": "family",
+    "label": "表姐妹"
+  },
+  {
+    "source": "2",
+    "target": "17",
     "type": "blood",
     "label": "外祖孙"
   },
   {
-    "source": "3",
-    "target": "4",
+    "source": "2",
+    "target": "18",
     "type": "family",
-    "label": "表姐妹"
+    "label": "舅甥女"
+  },
+  {
+    "source": "3",
+    "target": "20",
+    "type": "blood",
+    "label": "兄妹"
+  },
+  {
+    "source": "3",
+    "target": "21",
+    "type": "family",
+    "label": "姨甥女"
+  },
+  {
+    "source": "9",
+    "target": "19",
+    "type": "marriage",
+    "label": "夫妻"
+  },
+  {
+    "source": "9",
+    "target": "10",
+    "type": "blood",
+    "label": "母女"
+  },
+  {
+    "source": "9",
+    "target": "21",
+    "type": "family",
+    "label": "姑侄"
+  },
+  {
+    "source": "4",
+    "target": "18",
+    "type": "blood",
+    "label": "父女"
+  },
+  {
+    "source": "5",
+    "target": "18",
+    "type": "blood",
+    "label": "父女"
+  },
+  {
+    "source": "7",
+    "target": "19",
+    "type": "blood",
+    "label": "姐弟"
+  },
+  {
+    "source": "11",
+    "target": "22",
+    "type": "blood",
+    "label": "母子"
+  },
+  {
+    "source": "14",
+    "target": "20",
+    "type": "marriage",
+    "label": "妾室"
+  },
+  {
+    "source": "18",
+    "target": "17",
+    "type": "blood",
+    "label": "母子"
+  },
+  {
+    "source": "18",
+    "target": "21",
+    "type": "marriage",
+    "label": "夫妻"
+  },
+  {
+    "source": "19",
+    "target": "17",
+    "type": "blood",
+    "label": "孙子"
+  },
+  {
+    "source": "20",
+    "target": "21",
+    "type": "family",
+    "label": "姨甥"
   }
 ]
