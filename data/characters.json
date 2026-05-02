@@ -7,7 +7,7 @@
     "identity": "荣国府衔玉公子",
     "description": "贾政与王夫人次子，全书灵魂人物。叛逆传统礼教，主张平等与真情。",
     "status": "公子",
-    "group": "金陵十二钗正册",
+    "group": null,
     "birth_year": 1,
     "death_year": null,
     "events": ["黛玉进府", "共读西厢", "宝玉挨打", "晴雯被逐", "悬崖撒手"]
