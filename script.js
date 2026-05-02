@@ -276,38 +276,37 @@ function initEvents() {
     renderEvents();
 }
 
-// --- 全局搜索逻辑 (修复跳转) ---
+// --- 全局搜索逻辑 (原汁原味复刻) ---
 function initSearch() {
-    const input = document.getElementById('global-search');
-    const btn = document.getElementById('search-btn');
-    if(!input || !btn) return;
+    const searchInput = document.getElementById('global-search');
+    const searchBtn = document.getElementById('search-btn');
+    if(!searchInput || !searchBtn) return;
     
     function performSearch() {
-        const query = input.value.trim().toLowerCase();
+        const query = searchInput.value.trim().toLowerCase();
         if (!query) return;
         
-        // 汇总所有可搜索数据
         const allData = [
-            ...characters.map(c => ({...c, sType: 'character'})),
-            ...events.map(e => ({...e, sType: 'event'})),
-            ...(indexDataCache.poems || []).map(p => ({...p, sType: 'poem'})),
-            ...(indexDataCache.items || []).map(i => ({...i, sType: 'item'}))
+            ...characters.map(c => ({...c, searchType: 'character'})),
+            ...events.map(e => ({...e, searchType: 'event'})),
+            ...timeline.map(t => ({...t, searchType: 'timeline'})),
+            ...(indexDataCache.poems || []).map(p => ({...p, searchType: 'poem'}))
         ];
         
         const results = allData.filter(item => {
-            const title = (item.name || item.title || item.phrase || item.event || '').toLowerCase();
+            const title = (item.name || item.title || item.event || '').toLowerCase();
             const desc = (item.description || item.content || '').toLowerCase();
             return title.includes(query) || desc.includes(query);
         });
         
-        displaySearchResults(results, query);
+        showSearchResults(results, query);
     }
     
-    btn.addEventListener('click', performSearch);
-    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
 }
 
-function displaySearchResults(results, query) {
+function showSearchResults(results, query) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
@@ -318,29 +317,24 @@ function displaySearchResults(results, query) {
     if (results.length === 0) {
         modalBody.innerHTML = '<p>没有找到相关结果。</p>';
     } else {
-        modalBody.innerHTML = `<div class="search-results">${results.slice(0, 15).map(item => `
-            <div class="search-result-item" data-id="${item.id}" data-type="${item.sType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
-                <h4>${item.name || item.title || item.phrase || item.event}</h4>
-                <p><small>类别: ${getTypeLabel(item.sType)}</small></p>
+        modalBody.innerHTML = `<div class="search-results">${results.slice(0, 20).map(item => `
+            <div class="search-result-item" data-id="${item.id}" data-type="${item.searchType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
+                <h4>${item.name || item.title || item.event || '未命名'}</h4>
+                <p><small>类别: ${getTypeLabel(item.searchType)}</small></p>
             </div>`).join('')}</div>`;
         
-        modalBody.querySelectorAll('.search-result-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const id = el.getAttribute('data-id');
-                const type = el.getAttribute('data-type');
-                modal.classList.remove('active'); // 先关闭搜索结果模态框
-
+        modalBody.querySelectorAll('.search-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const id = item.getAttribute('data-id');
+                const type = item.getAttribute('data-type');
+                modal.classList.remove('active');
                 if (type === 'character') {
                     showSection('characters');
                     const char = characters.find(c => c.id == id);
-                    if(char) setTimeout(() => showCharacterDetail(char), 250);
-                } else if (type === 'event') {
-                    // 修复：事件跳转逻辑
-                    const ev = events.find(e => e.id == id);
-                    if(ev) setTimeout(() => showEventModal(ev), 100);
-                } else {
-                    // 诗词、器物等直接从缓存显示详情
-                    setTimeout(() => showIndexItemDetail(id, type === 'poem' ? 'poems' : 'items'), 100);
+                    if(char) setTimeout(() => showCharacterDetail(char), 200);
+                } else if (type === 'event' || type === 'timeline') {
+                    const e = events.find(ev => ev.id == id) || timeline.find(tl => tl.id == id);
+                    if(e) showEventModal(e);
                 }
             });
         });
