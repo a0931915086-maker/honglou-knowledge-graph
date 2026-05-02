@@ -740,7 +740,53 @@ function showEventModal(ev) {
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
-
+// 显示事件模态框
+function showEventModal(event) {
+    const modal = document.getElementById('detail-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
+    
+    modalTitle.textContent = event.title || event.event || '事件详情';
+    
+    // 构建模态框内容
+    modalBody.innerHTML = `
+        <div class="event-modal-content">
+            <div class="event-meta" style="display:flex; flex-wrap:wrap; gap:15px; margin-bottom:15px; color:#666;">
+                ${event.year ? `<div class="meta-item"><i class="fas fa-calendar"></i> 年份: 第${event.year}年</div>` : ''}
+                ${event.season ? `<div class="meta-item"><i class="fas fa-leaf"></i> 季节: ${event.season}</div>` : ''}
+                ${event.chapter ? `<div class="meta-item"><i class="fas fa-book-open"></i> 章节: ${event.chapter}</div>` : ''}
+                ${event.type ? `<div class="meta-item"><i class="fas fa-tag"></i> 类型: ${getEventCategoryLabel(event.type)}</div>` : ''}
+            </div>
+            <div class="event-content">
+                <h4>事件描述</h4>
+                <p>${event.description || event.content || '暂无详细描述'}</p>
+                ${event.characters && event.characters.length > 0 ? `
+                <div style="margin-top:15px;">
+                    <h4>涉及人物</h4>
+                    <p>${event.characters.join('、')}</p>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+    
+    // 绑定关闭事件
+    const closeBtn = modal.querySelector('.close-modal');
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+        closeBtn.dataset.bound = true;
+    }
+    
+    if (!modal.dataset.bound) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+        modal.dataset.bound = true;
+    }
+}
 // 补充了获取家族名称的辅助函数 (筛选功能必需)
 function getFamilyName(key) { return {jia:'贾',wang:'王',shi:'史',xue:'薛'}[key] || ''; }
 
