@@ -1,18 +1,18 @@
 // 全局变量
 let characters = [];
-let relationships = [];
+let relationships =[];
 let events = [];
-let timeline = [];
+let timeline =[];
 let currentGraph = null;
 let currentSelectedNode = null;
 
 // 详情数据缓存 (用于索引点击时调取)
 let indexDataCache = {
-    persons: [],
+    persons:[],
     items: [],
     festivals: [],
     poems: [],
-    proverbs: []
+    proverbs:[]
 };
 
 // 初始化
@@ -60,10 +60,10 @@ document.addEventListener('DOMContentLoaded', function() {
 async function fetchData(url) {
     try {
         const response = await fetch(url);
-        if (!response.ok) return [];
+        if (!response.ok) return[];
         return await response.json();
     } catch (error) {
-        return [];
+        return[];
     }
 }
 
@@ -110,7 +110,7 @@ function initHomePage() {
     });
 }
 
-// --- 人物关系图谱核心 (原汁原味复刻 + 修复筛选) ---
+// --- 人物关系图谱逻辑 (融合筛选功能与聚焦跳转) ---
 function initCharacterGraph() {
     const graphContainer = document.getElementById('relationship-graph');
     if (!graphContainer || characters.length === 0) return;
@@ -120,16 +120,16 @@ function initCharacterGraph() {
     graphContainer.innerHTML = '';
     
     const svg = d3.select('#relationship-graph').append('svg')
-        .attr('width', width).attr('height', height).attr('viewBox', [0, 0, width, height]);
+        .attr('width', width).attr('height', height).attr('viewBox',[0, 0, width, height]);
     
     const g = svg.append('g');
     
-    // 准备力导向数据
-    let filteredNodes = JSON.parse(JSON.stringify(characters));
-    let filteredLinks = JSON.parse(JSON.stringify(relationships));
+    // 初始化时深拷贝一份数据，避免污染原始全局变量
+    let simulationNodes = JSON.parse(JSON.stringify(characters));
+    let simulationLinks = JSON.parse(JSON.stringify(relationships));
 
-    const simulation = d3.forceSimulation(filteredNodes)
-        .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(120))
+    const simulation = d3.forceSimulation(simulationNodes)
+        .force('link', d3.forceLink(simulationLinks).id(d => d.id).distance(120))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(35));
@@ -141,23 +141,39 @@ function initCharacterGraph() {
         .attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
         .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#999');
     
+    // 定义基础选集
     let link = g.append('g').attr('class', 'links').selectAll('line');
     let node = g.append('g').attr('class', 'nodes').selectAll('g');
 
+    // 图谱更新函数：处理筛选和重绘
     function updateGraph() {
         const relType = document.getElementById('relation-filter')?.value || 'all';
         const familyType = document.getElementById('family-filter')?.value || 'all';
 
-        // 筛选逻辑
-        const activeLinks = relationships.filter(l => 
-            (relType === 'all' || l.type === relType)
-        );
+        // 1. 节点筛选逻辑
         const activeNodes = characters.filter(n => 
             (familyType === 'all' || (n.family && n.family.includes(getFamilyName(familyType))))
         );
 
-        // 重新渲染连线
-        link = link.data(activeLinks, d => `${d.source}-${d.target}`);
+        // 获取活跃节点的 ID 集合，防止连线指向不存在的节点导致报错
+        const activeNodeIds = new Set(activeNodes.map(n => n.id));
+
+        // 2. 连线筛选逻辑
+        const activeLinks = relationships.filter(l => {
+            const isTypeMatch = relType === 'all' || l.type === relType;
+            // 兼容 D3 force 解析过后的 source/target 对象形式和未解析的字符串形式
+            const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+            const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+            const isNodesExist = activeNodeIds.has(sourceId) && activeNodeIds.has(targetId);
+            return isTypeMatch && isNodesExist;
+        });
+
+        // --- 重新渲染连线 ---
+        link = link.data(activeLinks, d => {
+            const s = typeof d.source === 'object' ? d.source.id : d.source;
+            const t = typeof d.target === 'object' ? d.target.id : d.target;
+            return `${s}-${t}`;
+        });
         link.exit().remove();
         link = link.enter().append('line')
             .attr('class', 'link')
@@ -166,60 +182,101 @@ function initCharacterGraph() {
             .attr('marker-end', 'url(#arrow)')
             .merge(link);
 
-        // 重新渲染节点
+        // --- 重新渲染节点 ---
         node = node.data(activeNodes, d => d.id);
         node.exit().remove();
-        const nodeEnter = node.enter().append('g').attr('class', 'node')
+        
+        const nodeEnter = node.enter().append('g')
+            .attr('class', 'node')
             .call(d3.drag()
                 .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
                 .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
                 .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
 
-        nodeEnter.append('circle').attr('r', d => getNodeRadius(d.type))
-            .attr('fill', d => getNodeColor(d.type)).attr('stroke', '#fff').attr('stroke-width', 2);
-        nodeEnter.append('text').text(d => d.name).attr('y', d => getNodeRadius(d.type) + 15)
-            .attr('text-anchor', 'middle').style('font-size', '12px').style('pointer-events', 'none');
+        nodeEnter.append('circle')
+            .attr('r', d => getNodeRadius(d.type))
+            .attr('fill', d => getNodeColor(d.type))
+            .attr('stroke', '#fff').attr('stroke-width', 2).style('cursor', 'pointer');
+            
+        nodeEnter.append('text')
+            .text(d => d.name)
+            .attr('x', 0)
+            .attr('y', d => getNodeRadius(d.type) + 15)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px').attr('fill', '#333').style('pointer-events', 'none');
 
         node = nodeEnter.merge(node);
 
+        // 绑定节点交互事件
         node.on('mouseover', function(e, d) {
             d3.select(this).select('circle').attr('stroke', '#ff6b6b').attr('stroke-width', 3);
-            link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
+            link.attr('stroke-opacity', l => {
+                const sid = typeof l.source === 'object' ? l.source.id : l.source;
+                const tid = typeof l.target === 'object' ? l.target.id : l.target;
+                return (sid === d.id || tid === d.id) ? 1 : 0.1;
+            });
         }).on('mouseout', function() {
             d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 2);
             link.attr('stroke-opacity', 0.6);
         }).on('click', (e, d) => {
-            showCharacterDetail(d);
-            const scale = 1.5;
-            g.transition().duration(750).attr('transform', `translate(${width/2 - d.x*scale},${height/2 - d.y*scale}) scale(${scale})`);
+            focusOnCharacter(d);
         });
 
+        // 更新力导向图数据并重启
         simulation.nodes(activeNodes);
         simulation.force('link').links(activeLinks);
         simulation.alpha(1).restart();
     }
 
+    // 初始渲染
     updateGraph();
 
-    // 绑定下拉框事件
+    // 绑定下拉框与重置按钮事件
     document.getElementById('relation-filter')?.addEventListener('change', updateGraph);
     document.getElementById('family-filter')?.addEventListener('change', updateGraph);
     document.getElementById('reset-view')?.addEventListener('click', () => {
-        document.getElementById('relation-filter').value = 'all';
-        document.getElementById('family-filter').value = 'all';
+        if(document.getElementById('relation-filter')) document.getElementById('relation-filter').value = 'all';
+        if(document.getElementById('family-filter')) document.getElementById('family-filter').value = 'all';
         updateGraph();
         currentGraph.center();
     });
-
-    svg.call(d3.zoom().on('zoom', (event) => g.attr('transform', event.transform)));
+    
+    svg.call(d3.zoom().extent([[0, 0], [width, height]]).scaleExtent([0.1, 4]).on('zoom', (event) => g.attr('transform', event.transform)));
     
     simulation.on('tick', () => {
-        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
         node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
     
-    currentGraph = { center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)') };
+    // 聚焦人物的辅助函数
+    function focusOnCharacter(d) {
+        showCharacterDetail(d);
+        const scale = 2;
+        // 如果 d.x/d.y 暂无值（可能是刚加载完），提供默认保护
+        const xPos = d.x || width/2;
+        const yPos = d.y || height/2;
+        const x = width / 2 - xPos * scale;
+        const y = height / 2 - yPos * scale;
+        g.transition().duration(750).attr('transform', `translate(${x},${y}) scale(${scale})`);
+    }
+
+    // 暴露供外部（如全局搜索）调用的方法
+    currentGraph = { 
+        center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)'),
+        focus: (id) => {
+            // 1. 如果有筛选导致人物不在当前视图，重置视图以展示它
+            if(document.getElementById('relation-filter')) document.getElementById('relation-filter').value = 'all';
+            if(document.getElementById('family-filter')) document.getElementById('family-filter').value = 'all';
+            updateGraph();
+            
+            // 2. 查找人物并居中
+            // 由于 updateGraph 中的 simulation.nodes 会更新全局 characters 内对象的坐标
+            setTimeout(() => {
+                const d = characters.find(c => c.id == id);
+                if(d) focusOnCharacter(d);
+            }, 100); // 稍微延迟等待坐标初始化
+        }
+    };
 }
 
 // 侧边栏详情
@@ -227,7 +284,7 @@ function showCharacterDetail(character) {
     const detailPanel = document.getElementById('character-detail');
     if (!detailPanel) return;
     const related = relationships.filter(r => (r.source.id || r.source) === character.id || (r.target.id || r.target) === character.id);
-    const relHtml = related.map(rel => {
+    const relatedHtml = related.map(rel => {
         const otherId = (rel.source.id || rel.source) === character.id ? (rel.target.id || rel.target) : (rel.source.id || rel.source);
         const otherChar = characters.find(c => c.id === otherId);
         return otherChar ? `<div class="relationship-item"><span class="relation-name">${otherChar.name}</span><span class="relation-type ${rel.type}">${rel.label}</span></div>` : '';
@@ -245,12 +302,16 @@ function showCharacterDetail(character) {
                 <div class="info-row"><strong>家族：</strong><span>${character.family || '未指定'}</span></div>
                 <div class="info-row"><strong>籍册：</strong><span>${character.group || '其他'}</span></div>
             </div>
-            <div class="character-description"><h4>人物描述</h4><p>${character.description || '暂无描述'}</p></div>
-            ${relHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relHtml}</div></div>` : ''}
-        </div>`;
+            <div class="character-description">
+                <h4>人物描述</h4>
+                <p>${character.description || '暂无详细描述'}</p>
+            </div>
+            ${relatedHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relatedHtml}</div></div>` : ''}
+        </div>
+    `;
 }
-    
- // --- 时间轴逻辑 ---
+
+// --- 时间轴逻辑 ---
 function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
@@ -330,7 +391,7 @@ function initSearch() {
         if (!query) return;
         
         // 汇总搜索库，标记 searchType 用于跳转判断
-        const allData = [
+        const allData =[
             ...characters.map(c => ({...c, searchType: 'character'})),
             ...events.map(e => ({...e, searchType: 'event'})),
             ...timeline.map(t => ({...t, searchType: 'timeline'})),
@@ -452,7 +513,7 @@ function initIndex() {
 function loadIndexData(type) {
     const grid = document.querySelector(`#${type}-tab .index-grid`);
     if(!grid) return;
-    const data = indexDataCache[type] || [];
+    const data = indexDataCache[type] ||[];
     
     grid.innerHTML = data.map(item => {
         let title = item.name || item.title || item.phrase;
@@ -472,7 +533,7 @@ window.showIndexItemDetail = function(itemId, itemType) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
-    const list = indexDataCache[itemType] || [];
+    const list = indexDataCache[itemType] ||[];
     const item = list.find(d => d.id == itemId);
     if(!item) return;
 
@@ -504,6 +565,9 @@ function showEventModal(ev) {
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
+
+// 补充了获取家族名称的辅助函数 (筛选功能必需)
+function getFamilyName(key) { return {jia:'贾',wang:'王',shi:'史',xue:'薛'}[key] || ''; }
 
 function getEventCategoryLabel(c) { return {'family':'家族兴衰','love':'情感主线','fate':'命运转折','social':'社会事件'}[c] || '其他'; }
 function getTypeLabel(t) { return {character:'人物',event:'事件',timeline:'时间轴',poem:'诗词',item:'器物',festival:'节日',proverb:'俗语',main:'主要人物',major:'重要人物'}[t] || t; }
