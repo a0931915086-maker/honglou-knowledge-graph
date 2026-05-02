@@ -311,149 +311,148 @@ function showCharacterDetail(character) {
     `;
 }
 
-// 时间轴初始化 (已修复重叠问题，按季节分布)
+// 时间轴初始化 (修复事件消失问题)
 function initTimeline() {
     const container = document.getElementById('timeline-container');
-    if(!container || timeline.length === 0) {
+    if (!container || timeline.length === 0) {
         container.innerHTML = '<div class="no-data-message"><i class="fas fa-calendar-times"></i><p>暂无时间轴数据</p></div>';
         return;
     }
     
     try {
-        // 创建分组：每个年份的每个季节作为一个分组
-        const groups = new vis.DataSet();
-        const eventsData = [];
+        console.log('时间轴数据:', timeline); // 调试用
         
-        // 遍历事件，创建分组和事件
-        timeline.forEach(item => {
+        // 检查vis库是否已加载
+        if (typeof vis === 'undefined') {
+            container.innerHTML = '<div class="error-notice"><p>时间轴库加载失败，请刷新页面重试</p></div>';
+            return;
+        }
+        
+        // 创建事件数据集 - 不使用分组，直接使用时间点
+        const eventsData = new vis.DataSet();
+        
+        // 遍历所有事件，确保每个事件都添加
+        timeline.forEach((item, index) => {
             const yearNum = parseInt(item.year) || 1;
             const season = item.season || '未知';
             
-            // 创建分组ID：年份-季节
-            const groupId = `${yearNum}-${season}`;
-            
-            // 如果分组不存在，添加分组
-            if (!groups.get(groupId)) {
-                groups.add({
-                    id: groupId,
-                    content: `第${yearNum}年 ${season}`,
-                    className: `timeline-group ${season}-group`,
-                    order: (yearNum * 10) + getSeasonOrder(season)
-                });
-            }
+            // 为每个事件生成唯一ID（防止重复）
+            const eventId = item.id || `event-${index}`;
             
             // 根据季节计算具体日期
             const seasonDates = getSeasonDates(yearNum, season);
             
-            // 创建事件
-            eventsData.push({
-                id: item.id,
-                group: groupId,
-                content: `<div class="timeline-event">
-                            <strong>${item.event}</strong>
-                            <div class="event-chapter">${item.chapter}</div>
+            // 为同一年同一季节的事件添加时间偏移，避免完全重叠
+            const timeOffset = index % 3; // 0,1,2天的偏移
+            
+            // 计算开始和结束日期
+            let startDate = new Date(seasonDates.start);
+            let endDate = new Date(seasonDates.end);
+            
+            // 添加微小的时间偏移
+            startDate.setDate(startDate.getDate() + timeOffset);
+            endDate.setDate(endDate.getDate() + timeOffset);
+            
+            eventsData.add({
+                id: eventId,
+                content: `<div class="timeline-event-content">
+                            <div class="event-title">${item.event}</div>
+                            <div class="event-meta">第${yearNum}年 ${season} · ${item.chapter}</div>
                           </div>`,
-                start: seasonDates.start,
-                end: seasonDates.end,
-                type: 'range',
-                className: `timeline-item ${item.type}`,
-                title: `${item.event} (${item.chapter})`,
-                description: item.description || '',
-                year: yearNum,
-                season: season
+                start: startDate,
+                end: endDate,
+                className: `timeline-item ${item.type || 'default'} ${season}-item`,
+                title: `${item.event}\n第${yearNum}年 ${season}\n${item.chapter}`,
+                group: season, // 按季节分组，但不使用vis的分组功能
+                type: 'range'
             });
         });
+        
+        console.log('处理后的事件数量:', eventsData.length); // 调试用
+        
+        // 计算时间范围
+        const allItems = eventsData.get();
+        if (allItems.length === 0) {
+            container.innerHTML = '<div class="no-data-message"><p>没有可显示的事件</p></div>';
+            return;
+        }
+        
+        // 找到最早和最晚的日期
+        let minDate = new Date(allItems[0].start);
+        let maxDate = new Date(allItems[0].end);
+        
+        allItems.forEach(item => {
+            const start = new Date(item.start);
+            const end = new Date(item.end);
+            if (start < minDate) minDate = start;
+            if (end > maxDate) maxDate = end;
+        });
+        
+        // 扩展时间范围
+        minDate.setFullYear(minDate.getFullYear() - 1);
+        maxDate.setFullYear(maxDate.getFullYear() + 1);
         
         // 创建时间轴选项
         const options = {
             width: '100%',
             height: '600px',
-            min: '0001-01-01',
-            max: '0020-12-31',
-            start: '0001-01-01',
-            end: '0015-12-31',
-            zoomMin: 1000 * 60 * 60 * 24 * 30 * 3, // 最小缩放为3个月
+            min: minDate,
+            max: maxDate,
+            zoomMin: 1000 * 60 * 60 * 24 * 30, // 最小缩放为1个月
             zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, // 最大缩放为20年
             moveable: true,
             zoomable: true,
+            selectable: true,
+            stack: false, // 关闭堆叠，避免重叠
+            stackSubgroups: false,
             orientation: {
                 axis: 'both',
                 item: 'top'
             },
             tooltip: {
-                followMouse: true,
+                followMouse: false,
                 overflowMethod: 'cap'
             },
             format: {
                 minorLabels: {
-                    year: 'YYYY年'
+                    year: 'YYYY年',
+                    month: 'MMM'
                 }
             },
-            // 分组配置
-            groupOrder: 'order',
-            groupHeightMode: 'fixed',
-            stack: false, // 禁用堆叠，确保事件不重叠
-            stackSubgroups: false,
-            verticalScroll: true,
-            maxHeight: 600
+            // 时间轴样式
+            margin: {
+                axis: 5,
+                item: 10
+            },
+            showCurrentTime: false
         };
         
-        if (typeof vis !== 'undefined') {
-            // 创建时间轴实例
-            const timelineInstance = new vis.Timeline(container, eventsData, groups, options);
-            
-            // 添加控件事件监听
-            const zoomInBtn = document.getElementById('zoom-in');
-            const zoomOutBtn = document.getElementById('zoom-out');
-            const fitBtn = document.getElementById('fit-timeline');
-
-            if(zoomInBtn) zoomInBtn.addEventListener('click', () => {
-                const range = timelineInstance.getWindow();
-                const zoom = (range.end - range.start) * 0.7;
-                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
-                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-            });
-            
-            if(zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
-                const range = timelineInstance.getWindow();
-                const zoom = (range.end - range.start) * 1.3;
-                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
-                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-            });
-            
-            if(fitBtn) fitBtn.addEventListener('click', () => {
-                timelineInstance.fit();
-            });
-            
-            // 点击事件显示详情
-            timelineInstance.on('click', function(properties) {
-                if (properties.item) {
-                    const event = timeline.find(e => e.id == properties.item);
-                    if (event) showEventModal(event);
+        // 创建时间轴实例
+        const timelineInstance = new vis.Timeline(container, eventsData, options);
+        
+        // 添加控件事件监听
+        setupTimelineControls(timelineInstance);
+        
+        // 点击事件显示详情
+        timelineInstance.on('click', function(properties) {
+            if (properties.item) {
+                const eventItem = eventsData.get(properties.item);
+                if (eventItem) {
+                    // 找到原始事件数据
+                    const originalEvent = timeline.find(e => 
+                        e.id === properties.item || 
+                        e.event === eventItem.title.split('\n')[0]
+                    );
+                    if (originalEvent) {
+                        showEventModal(originalEvent);
+                    }
                 }
-            });
-            
-            // 添加悬停效果
-            timelineInstance.on('mouseOver', function(properties) {
-                if (properties.item) {
-                    timelineInstance.setItemCSS(properties.item, {
-                        'box-shadow': '0 4px 8px rgba(0,0,0,0.2)',
-                        'transform': 'scale(1.05)',
-                        'transition': 'all 0.3s ease'
-                    });
-                }
-            });
-            
-            timelineInstance.on('mouseOut', function(properties) {
-                if (properties.item) {
-                    timelineInstance.setItemCSS(properties.item, {
-                        'box-shadow': 'none',
-                        'transform': 'scale(1)'
-                    });
-                }
-            });
-            
-        }
+            }
+        });
+        
+        // 添加自定义CSS类
+        addTimelineStyles();
+        
     } catch (err) {
         console.error("时间轴渲染出错:", err);
         container.innerHTML = `
@@ -471,18 +470,78 @@ function initTimeline() {
     }
 }
 
-// 辅助函数：获取季节顺序
-function getSeasonOrder(season) {
-    const orderMap = {
-        '春': 1,
-        '夏': 2,
-        '秋': 3,
-        '冬': 4,
-        '未知': 5
-    };
-    return orderMap[season] || 5;
+// 设置时间轴控件
+function setupTimelineControls(timelineInstance) {
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const fitBtn = document.getElementById('fit-timeline');
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            const range = timelineInstance.getWindow();
+            const zoom = (range.end - range.start) * 0.7;
+            const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+            timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+        });
+    }
+    
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            const range = timelineInstance.getWindow();
+            const zoom = (range.end - range.start) * 1.3;
+            const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+            timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+        });
+    }
+    
+    if (fitBtn) {
+        fitBtn.addEventListener('click', () => {
+            timelineInstance.fit();
+        });
+    }
 }
 
+// 添加时间轴样式
+function addTimelineStyles() {
+    if (!document.getElementById('timeline-styles')) {
+        const style = document.createElement('style');
+        style.id = 'timeline-styles';
+        style.textContent = `
+            .timeline-event-content {
+                padding: 4px 8px;
+                border-radius: 3px;
+                background: white;
+                border: 1px solid #ddd;
+                max-width: 200px;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+            .event-title {
+                font-weight: bold;
+                color: #8b0000;
+                font-size: 12px;
+                margin-bottom: 2px;
+            }
+            .event-meta {
+                font-size: 10px;
+                color: #666;
+            }
+            .vis-item {
+                border-radius: 4px;
+            }
+            .vis-item.vis-range {
+                border-width: 1px;
+            }
+            .vis-item.spring-item { border-color: #4caf50; background-color: rgba(76, 175, 80, 0.1); }
+            .vis-item.summer-item { border-color: #2196f3; background-color: rgba(33, 150, 243, 0.1); }
+            .vis-item.autumn-item { border-color: #ff9800; background-color: rgba(255, 152, 0, 0.1); }
+            .vis-item.winter-item { border-color: #9c27b0; background-color: rgba(156, 39, 176, 0.1); }
+            .vis-item.未知-item { border-color: #9e9e9e; background-color: rgba(158, 158, 158, 0.1); }
+        `;
+        document.head.appendChild(style);
+    }
+}
 // 辅助函数：获取季节的具体日期范围
 function getSeasonDates(year, season) {
     const yearStr = String(year).padStart(4, '0');
@@ -509,6 +568,7 @@ function getSeasonDates(year, season) {
                 end: `${String(year + 1).padStart(4, '0')}-02-28`
             };
         default:
+            // 未知季节，分布在整个年份
             return {
                 start: `${yearStr}-01-01`,
                 end: `${yearStr}-12-31`
@@ -745,7 +805,7 @@ function showEventModal(event) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
-    if(!modal) return;
+    if (!modal) return;
     
     modalTitle.textContent = event.title || event.event || '事件详情';
     
@@ -760,8 +820,8 @@ function showEventModal(event) {
             </div>
             <div class="event-content">
                 <h4>事件描述</h4>
-                <p>${event.description || event.content || '暂无详细描述'}</p>
-                ${event.characters && event.characters.length > 0 ? `
+                <p>${event.description || '暂无详细描述'}</p>
+                ${event.characters && Array.isArray(event.characters) && event.characters.length > 0 ? `
                 <div style="margin-top:15px;">
                     <h4>涉及人物</h4>
                     <p>${event.characters.join('、')}</p>
@@ -775,17 +835,13 @@ function showEventModal(event) {
     
     // 绑定关闭事件
     const closeBtn = modal.querySelector('.close-modal');
-    if (closeBtn && !closeBtn.dataset.bound) {
-        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-        closeBtn.dataset.bound = true;
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.classList.remove('active');
     }
     
-    if (!modal.dataset.bound) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
-        modal.dataset.bound = true;
-    }
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+    };
 }
 // 补充了获取家族名称的辅助函数 (筛选功能必需)
 function getFamilyName(key) { return {jia:'贾',wang:'王',shi:'史',xue:'薛'}[key] || ''; }
