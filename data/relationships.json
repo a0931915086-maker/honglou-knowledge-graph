@@ -168,16 +168,10 @@
     "label": "父女"
   },
   {
-    "source": "15",
+    "source": "14",
     "target": "20",
     "type": "marriage",
     "label": "夫妻（妾）"
-  },
-  {
-    "source": "4",
-    "target": "1",
-    "type": "blood",
-    "label": "姐弟"
   },
   {
     "source": "4",
@@ -208,12 +202,6 @@
     "target": "21",
     "type": "marriage",
     "label": "夫妻"
-  },
-   {
-    "source": "20",
-    "target": "3",
-    "type": "blood",
-    "label": "兄妹"
   },
   {
     "source": "21",
