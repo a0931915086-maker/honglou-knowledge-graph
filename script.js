@@ -17,7 +17,6 @@ let indexDataCache = {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 加载数据
     Promise.all([
         fetchData('data/characters.json'),
         fetchData('data/relationships.json'),
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
         events = evts;
         timeline = tml;
         
-        // 缓存索引数据
         indexDataCache.persons = chars;
         indexDataCache.items = items;
         indexDataCache.festivals = festivals;
@@ -52,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         showSection('home');
     }).catch(error => {
-        console.error('加载数据失败:', error);
+        console.error('加载核心数据失败:', error);
     });
 });
 
@@ -92,8 +90,6 @@ function showSection(sectionId) {
     });
     const targetSection = document.getElementById(sectionId);
     if (targetSection) targetSection.classList.add('active');
-    
-    // 如果跳转到人物图谱，尝试居中显示
     if (sectionId === 'characters' && currentGraph) {
         setTimeout(() => currentGraph.center(), 100);
     }
@@ -322,7 +318,7 @@ function initTimeline() {
     } catch (err) { console.error(err); }
 }
 
-// --- 重要事件逻辑 ---
+// --- 重要事件逻辑 (含筛选) ---
 function initEvents() {
     const container = document.getElementById('events-container');
     const searchInput = document.getElementById('event-search');
@@ -334,7 +330,7 @@ function initEvents() {
             <div class="event-card" data-id="${e.id}">
                 <div class="event-category">${getEventCategoryLabel(e.category)}</div>
                 <h3>${e.title}</h3>
-                <div class="event-time"><i class="fas fa-clock"></i><span>第${e.year}年 · ${e.chapter}</span></div>
+                <div class="event-time"><i class="fas fa-clock"></i><span>第${e.year}年 · ${e.season} · ${e.chapter}</span></div>
                 <p>${e.description ? e.description.substring(0, 100) : ''}...</p>
             </div>
         `).join('');
@@ -361,7 +357,7 @@ function initEvents() {
     renderEvents();
 }
 
-// --- 全局搜索逻辑 (支持精准跳转) ---
+// --- 全局搜索逻辑 (原汁原味复刻) ---
 function initSearch() {
     const searchInput = document.getElementById('global-search');
     const searchBtn = document.getElementById('search-btn');
@@ -371,19 +367,15 @@ function initSearch() {
         const query = searchInput.value.trim().toLowerCase();
         if (!query) return;
         
-        // 汇总搜索库，标记 searchType 用于跳转判断
         const allData = [
             ...characters.map(c => ({...c, searchType: 'character'})),
             ...events.map(e => ({...e, searchType: 'event'})),
             ...timeline.map(t => ({...t, searchType: 'timeline'})),
-            ...indexDataCache.items.map(i => ({...i, searchType: 'item'})),
-            ...indexDataCache.poems.map(p => ({...p, searchType: 'poem'})),
-            ...indexDataCache.festivals.map(f => ({...f, searchType: 'festival'})),
-            ...indexDataCache.proverbs.map(v => ({...v, searchType: 'proverb'}))
+            ...(indexDataCache.poems || []).map(p => ({...p, searchType: 'poem'}))
         ];
         
         const results = allData.filter(item => {
-            const title = (item.name || item.title || item.event || item.phrase || '').toLowerCase();
+            const title = (item.name || item.title || item.event || '').toLowerCase();
             const desc = (item.description || item.content || '').toLowerCase();
             return title.includes(query) || desc.includes(query);
         });
@@ -408,7 +400,7 @@ function showSearchResults(results, query) {
     } else {
         modalBody.innerHTML = `<div class="search-results">${results.slice(0, 20).map(item => `
             <div class="search-result-item" data-id="${item.id}" data-type="${item.searchType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
-                <h4>${item.name || item.title || item.event || item.phrase || '未命名'}</h4>
+                <h4>${item.name || item.title || item.event || '未命名'}</h4>
                 <p><small>类别: ${getTypeLabel(item.searchType)}</small></p>
             </div>`).join('')}</div>`;
         
@@ -416,63 +408,19 @@ function showSearchResults(results, query) {
             item.addEventListener('click', () => {
                 const id = item.getAttribute('data-id');
                 const type = item.getAttribute('data-type');
-                
-                // 1. 关闭搜索弹窗
                 modal.classList.remove('active');
-
-                // 2. 执行跳转逻辑
-                executeJump(id, type);
+                if (type === 'character') {
+                    showSection('characters');
+                    const char = characters.find(c => c.id == id);
+                    if(char) setTimeout(() => showCharacterDetail(char), 200);
+                } else if (type === 'event' || type === 'timeline') {
+                    const e = events.find(ev => ev.id == id) || timeline.find(tl => tl.id == id);
+                    if(e) showEventModal(e);
+                }
             });
         });
     }
     modal.classList.add('active');
-}
-
-// 核心跳转执行函数
-function executeJump(id, type) {
-    let sectionId = '';
-    let tabId = '';
-
-    // 映射板块与索引标签
-    switch(type) {
-        case 'character': sectionId = 'characters'; break;
-        case 'event': sectionId = 'events'; break;
-        case 'timeline': sectionId = 'timeline'; break;
-        case 'item': sectionId = 'index'; tabId = 'items'; break;
-        case 'poem': sectionId = 'index'; tabId = 'poems'; break;
-        case 'festival': sectionId = 'index'; tabId = 'festivals'; break;
-        case 'proverb': sectionId = 'index'; tabId = 'proverbs'; break;
-    }
-
-    if (!sectionId) return;
-
-    // 1. 同步导航栏激活状态
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(l => {
-        l.classList.toggle('active', l.getAttribute('href') === `#${sectionId}`);
-    });
-
-    // 2. 切换板块
-    showSection(sectionId);
-
-    // 3. 进入板块后的具体定位
-    setTimeout(() => {
-        if (type === 'character') {
-            if (currentGraph) currentGraph.focus(id);
-        } else if (type === 'event') {
-            const e = events.find(ev => ev.id == id);
-            if (e) showEventModal(e);
-        } else if (type === 'timeline') {
-            const t = timeline.find(tl => tl.id == id);
-            if (t) showEventModal({title: t.event, description: t.description, year: t.year});
-        } else if (sectionId === 'index' && tabId) {
-            // 点击对应的标签按钮
-            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-            if (tabBtn) tabBtn.click();
-            // 延迟一点显示具体条目详情
-            setTimeout(() => showIndexItemDetail(id, tabId), 100);
-        }
-    }, 300);
 }
 
 // --- 索引模块 ---
@@ -510,6 +458,7 @@ function loadIndexData(type) {
     }).join('');
 }
 
+// 索引详情自动调取
 window.showIndexItemDetail = function(itemId, itemType) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -523,7 +472,7 @@ window.showIndexItemDetail = function(itemId, itemType) {
     if (itemType === 'persons') {
         html = `<p><strong>籍册：</strong><span style="color:#8b0000;">${item.group || '未入册'}</span></p><p><strong>身份：</strong>${item.identity}</p><p><strong>家族：</strong>${item.family}</p><hr><p>${item.description}</p>`;
     } else if (itemType === 'poems') {
-        html = `<p><strong>作者：</strong>${item.author}</p><div style="background:#fdfcf8; padding:15px; border:1px solid #ddd; white-space:pre-wrap; text-align:center; font-family:serif; line-height:2;">${item.content}</div>`;
+        html = `<p><strong>作者：</strong>${item.author}</p><div style="background:#fdfcf8; padding:15px; border:1px solid #ddd; white-space:pre-wrap; text-align:center;">${item.content}</div>`;
     } else {
         html = `<p>${item.description || item.meaning || '暂无详细内容'}</p>`;
     }
@@ -548,7 +497,7 @@ function showEventModal(ev) {
 }
 
 function getEventCategoryLabel(c) { return {'family':'家族兴衰','love':'情感主线','fate':'命运转折','social':'社会事件'}[c] || '其他'; }
-function getTypeLabel(t) { return {character:'人物',event:'事件',timeline:'时间轴',poem:'诗词',item:'器物',festival:'节日',proverb:'俗语',main:'主要人物',major:'重要人物'}[t] || t; }
+function getTypeLabel(t) { return {character:'人物',event:'事件',poem:'诗词',item:'器物',main:'主要人物',major:'重要人物'}[t] || t; }
 function getNodeColor(t) { return {main:'#8b0000',major:'#d4af37',minor:'#2e8b57'}[t] || '#6c757d'; }
 function getNodeRadius(t) { return {main:25,major:20,minor:15}[t] || 10; }
 function getLinkColor(t) { return {blood:'#dc3545',marriage:'#28a745','master-servant':'#fd7e14',emotional:'#17a2b8',family:'#6f42c1'}[t] || '#999'; }
