@@ -316,18 +316,90 @@ function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
     try {
-        const timelineData = timeline.map(item => ({
-            id: item.id, content: item.event,
-            start: `${String(item.year).padStart(4, '0')}-01-01`,
-            end: `${String(item.year).padStart(4, '0')}-12-31`,
-            type: 'range', className: item.type || 'default'
-        }));
-        const options = {
-            width: '100%', height: '100%', min: '0001-01-01', max: '0020-12-31', 
-            start: '0001-01-01', end: '0015-12-31', zoomMin: 1000 * 60 * 60 * 24 * 365,
-            moveable: true, zoomable: true, orientation: { axis: 'both', item: 'top' },
-            format: { minorLabels: { year: 'YYYY年' } }
-        };
+        // 创建时间轴数据
+const timelineData = timeline.map(item => {
+    const yearNum = parseInt(item.year) || 1;
+    const yearStr = String(yearNum).padStart(4, '0');
+    let startDate, endDate;
+    
+    // 根据季节设置日期范围
+    if (item.season) {
+        switch(item.season) {
+            case "春": // 春季：3月-5月
+                startDate = `${yearStr}-03-01`;
+                endDate = `${yearStr}-05-31`;
+                break;
+            case "夏": // 夏季：6月-8月
+                startDate = `${yearStr}-06-01`;
+                endDate = `${yearStr}-08-31`;
+                break;
+            case "秋": // 秋季：9月-11月
+                startDate = `${yearStr}-09-01`;
+                endDate = `${yearStr}-11-30`;
+                break;
+            case "冬": // 冬季：12月-次年2月
+                startDate = `${yearStr}-12-01`;
+                // 冬季跨越年份，结束日期为次年2月28日
+                const nextYearStr = String(yearNum + 1).padStart(4, '0');
+                endDate = `${nextYearStr}-02-28`;
+                break;
+            default:
+                // 如果季节值不识别，默认为全年
+                startDate = `${yearStr}-01-01`;
+                endDate = `${yearStr}-12-31`;
+        }
+    } else {
+        // 没有季节信息，默认为全年
+        startDate = `${yearStr}-01-01`;
+        endDate = `${yearStr}-12-31`;
+    }
+    
+    return {
+        id: item.id,
+        content: item.event,
+        start: startDate,
+        end: endDate,
+        type: 'range',
+        className: item.type || 'default',
+        title: item.chapter || '',
+        description: item.description || ''
+    };
+});
+
+// 动态计算时间轴的显示范围（包含所有事件）
+let minDate = '9999-12-31';
+let maxDate = '0001-01-01';
+timelineData.forEach(item => {
+    if (item.start < minDate) minDate = item.start;
+    if (item.end > maxDate) maxDate = item.end;
+});
+
+// 创建时间轴选项
+const options = {
+    width: '100%',
+    height: '100%',
+    min: minDate, // 动态设置最小值
+    max: maxDate, // 动态设置最大值
+    start: minDate,
+    end: maxDate,
+    zoomMin: 1000 * 60 * 60 * 24 * 30 * 3, // 最小缩放为3个月
+    zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, // 最大缩放为20年
+    moveable: true,
+    zoomable: true,
+    orientation: {
+        axis: 'both',
+        item: 'top'
+    },
+    tooltip: {
+        followMouse: true,
+        overflowMethod: 'cap'
+    },
+    format: {
+        minorLabels: {
+            year: 'YYYY年'
+        }
+    }
+};
         const timelineInstance = new vis.Timeline(container, timelineData, options);
         document.getElementById('zoom-in')?.addEventListener('click', () => timelineInstance.zoomIn(0.5));
         document.getElementById('zoom-out')?.addEventListener('click', () => timelineInstance.zoomOut(0.5));
