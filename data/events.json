@@ -1,24 +1,281 @@
-[
-  {
+{
     "id": "1",
-    "title": "黛玉进府",
-    "year": 1,
-    "season": "秋季",
-    "chapter": "第三回",
-    "category": "family",
-    "description": "林黛玉因母亲去世，被外祖母贾母接进荣国府，与宝玉初见，两人都有似曾相识之感。",
-    "characters": ["林黛玉", "贾宝玉", "贾母", "王熙凤"],
-    "significance": "黛玉进府拉开了《红楼梦》主要故事的序幕，也是宝黛爱情的起点。"
+    "year": 0,
+    "event": "甄士隐梦幻识通灵",
+    "type": "fantasy",
+    "chapter": "第一回"
   },
   {
     "id": "2",
-    "title": "元妃省亲",
+    "year": 1,
+    "event": "黛玉进府",
+    "type": "family",
+    "chapter": "第三回"
+  },
+  {
+    "id": "3",
+    "year": 1,
+    "event": "葫芦僧乱判葫芦案",
+    "type": "society",
+    "chapter": "第四回"
+  },
+  {
+    "id": "4",
+    "year": 1,
+    "event": "宝钗进京",
+    "type": "family",
+    "chapter": "第四回"
+  },
+  {
+    "id": "5",
+    "year": 1,
+    "event": "贾宝玉神游太虚境",
+    "type": "fantasy",
+    "chapter": "第五回"
+  },
+  {
+    "id": "6",
+    "year": 1,
+    "event": "刘姥姥一进荣国府",
+    "type": "society",
+    "chapter": "第六回"
+  },
+  {
+    "id": "7",
+    "year": 2,
+    "event": "宝黛初会金锁（识金锁）",
+    "type": "romance",
+    "chapter": "第八回"
+  },
+  {
+    "id": "8",
+    "year": 2,
+    "event": "王熙凤毒设相思局（贾瑞之死）",
+    "type": "tragedy",
+    "chapter": "第十二回"
+  },
+  {
+    "id": "9",
+    "year": 2,
+    "event": "秦可卿之死",
+    "type": "tragedy",
+    "chapter": "第十三回"
+  },
+  {
+    "id": "10",
     "year": 3,
-    "season": "春季",
-    "chapter": "第十八回",
-    "category": "family",
-    "description": "贾元春被封为贤德妃，回家省亲，贾府为此修建大观园，达到荣耀的顶峰。",
-    "characters": ["贾元春", "贾母", "贾政", "王夫人"],
-    "significance": "贾府最鼎盛的时刻，但元春的眼泪预示了贾府盛极而衰的命运。"
+    "event": "元妃省亲",
+    "type": "family",
+    "chapter": "第十八回"
+  },
+  {
+    "id": "11",
+    "year": 3,
+    "event": "宝黛共读西厢",
+    "type": "romance",
+    "chapter": "第二十三回"
+  },
+  {
+    "id": "12",
+    "year": 3,
+    "event": "芒种节黛玉葬花",
+    "type": "romance",
+    "chapter": "第二十七回"
+  },
+  {
+    "id": "13",
+    "year": 3,
+    "event": "清虚观打醮",
+    "type": "society",
+    "chapter": "第二十九回"
+  },
+  {
+    "id": "14",
+    "year": 3,
+    "event": "晴雯撕扇",
+    "type": "personal",
+    "chapter": "第三十一回"
+  },
+  {
+    "id": "15",
+    "year": 3,
+    "event": "金钏投井",
+    "type": "tragedy",
+    "chapter": "第三十二回"
+  },
+  {
+    "id": "16",
+    "year": 3,
+    "event": "宝玉挨打",
+    "type": "family",
+    "chapter": "第三十三回"
+  },
+  {
+    "id": "17",
+    "year": 4,
+    "event": "海棠结社（大观园诗社成立）",
+    "type": "literature",
+    "chapter": "第三十七回"
+  },
+  {
+    "id": "18",
+    "year": 4,
+    "event": "史湘云设螃蟹宴（咏菊诗会）",
+    "type": "literature",
+    "chapter": "第三十八回"
+  },
+  {
+    "id": "19",
+    "year": 4,
+    "event": "刘姥姥二进荣国府",
+    "type": "society",
+    "chapter": "第四十回"
+  },
+  {
+    "id": "20",
+    "year": 4,
+    "event": "鸳鸯抗婚",
+    "type": "personal",
+    "chapter": "第四十六回"
+  },
+  {
+    "id": "21",
+    "year": 4,
+    "event": "香菱学诗",
+    "type": "literature",
+    "chapter": "第四十八回"
+  },
+  {
+    "id": "22",
+    "year": 4,
+    "event": "芦雪庵争联即景诗",
+    "type": "literature",
+    "chapter": "第五十回"
+  },
+  {
+    "id": "23",
+    "year": 4,
+    "event": "晴雯病补雀金裘",
+    "type": "personal",
+    "chapter": "第五十二回"
+  },
+  {
+    "id": "24",
+    "year": 5,
+    "event": "探春理家",
+    "type": "family",
+    "chapter": "第五十五回"
+  },
+  {
+    "id": "25",
+    "year": 5,
+    "event": "慧紫鹃情辞试忙玉",
+    "type": "romance",
+    "chapter": "第五十七回"
+  },
+  {
+    "id": "26",
+    "year": 5,
+    "event": "湘云醉眠芍药裀",
+    "type": "literature",
+    "chapter": "第六十二回"
+  },
+  {
+    "id": "27",
+    "year": 5,
+    "event": "尤三姐自刎",
+    "type": "tragedy",
+    "chapter": "第六十六回"
+  },
+  {
+    "id": "28",
+    "year": 5,
+    "event": "尤二姐吞金",
+    "type": "tragedy",
+    "chapter": "第六十九回"
+  },
+  {
+    "id": "29",
+    "year": 6,
+    "event": "傻大姐拾绣春囊",
+    "type": "family",
+    "chapter": "第七十三回"
+  },
+  {
+    "id": "30",
+    "year": 6,
+    "event": "抄检大观园",
+    "type": "tragedy",
+    "chapter": "第七十四回"
+  },
+  {
+    "id": "31",
+    "year": 6,
+    "event": "晴雯夭亡",
+    "type": "tragedy",
+    "chapter": "第七十七回"
+  },
+  {
+    "id": "32",
+    "year": 6,
+    "event": "迎春误嫁中山狼",
+    "type": "tragedy",
+    "chapter": "第七十九回"
+  },
+  {
+    "id": "33",
+    "year": 7,
+    "event": "宝玉失玉",
+    "type": "family",
+    "chapter": "第九十四回"
+  },
+  {
+    "id": "34",
+    "year": 8,
+    "event": "林黛玉焚稿断痴情",
+    "type": "tragedy",
+    "chapter": "第九十七回"
+  },
+  {
+    "id": "35",
+    "year": 8,
+    "event": "薛宝钗出闺成大礼",
+    "type": "family",
+    "chapter": "第九十七回"
+  },
+  {
+    "id": "36",
+    "year": 8,
+    "event": "探春远嫁海疆",
+    "type": "personal",
+    "chapter": "第一百回"
+  },
+  {
+    "id": "37",
+    "year": 9,
+    "event": "锦衣军查抄宁国府（贾府被抄）",
+    "type": "society",
+    "chapter": "第一百零五回"
+  },
+  {
+    "id": "38",
+    "year": 9,
+    "event": "贾母病逝",
+    "type": "tragedy",
+    "chapter": "第一百一十回"
+  },
+  {
+    "id": "39",
+    "year": 10,
+    "event": "王熙凤历幻返金陵（病逝）",
+    "type": "tragedy",
+    "chapter": "第一百一十四回"
+  },
+  {
+    "id": "40",
+    "year": 10,
+    "event": "贾宝玉悬崖撒手（出家）",
+    "type": "personal",
+    "chapter": "第一百二十回"
   }
 ]
