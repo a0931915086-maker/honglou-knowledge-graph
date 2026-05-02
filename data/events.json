@@ -170,7 +170,7 @@
     "year": 3,
     "season": "夏季",
     "chapter": "第三十三回",
-    "category": "family","love",
+    "category": "love",
     "description": "贾政因宝玉结交戏子、逼死金钏等事，痛打宝玉，贾母王夫人哭求才住手。",
     "characters": ["贾宝玉", "贾政", "王夫人", "贾母"],
     "significance": "父子矛盾激化，贾府内部危机显现。"
@@ -368,7 +368,7 @@
     "year": 8,
     "season": "春季",
     "chapter": "第九十七回",
-    "category": "fate","love",
+    "category": "love",
     "description": "黛玉得知宝玉将娶宝钗，绝望焚烧诗稿，含恨而死。",
     "characters": ["林黛玉", "紫鹃", "李纨"],
     "significance": "宝黛爱情悲剧高潮，黛玉香消玉殒。"
