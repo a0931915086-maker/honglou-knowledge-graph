@@ -1,119 +1,106 @@
 // 全局变量
-let characters =[];
+let characters = [];
 let relationships = [];
 let events = [];
-let timeline =[];
+let timeline = [];
 let currentGraph = null;
 let currentSelectedNode = null;
 
+// 数据缓存，用于存储从JSON加载的索引项详细信息
+let indexDataCache = {
+    persons: [],
+    items: [],
+    festivals: [],
+    poems: [],
+    proverbs: []
+};
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 加载数据
+    // 加载核心数据
     Promise.all([
         fetchData('data/characters.json'),
         fetchData('data/relationships.json'),
         fetchData('data/events.json'),
-        fetchData('data/timeline.json'),
-        fetchData('data/items.json'),
-        fetchData('data/festivals.json'),
-        fetchData('data/poems.json'),
-        fetchData('data/proverbs.json')
-    ]).then(([chars, rels, evts, tml, items, festivals, poems, proverbs]) => {
+        fetchData('data/timeline.json')
+    ]).then(([chars, rels, evts, tml]) => {
         characters = chars;
         relationships = rels;
         events = evts;
         timeline = tml;
         
+        // 将人物数据同步到缓存
+        indexDataCache.persons = chars;
+        
         // 更新统计数据
         updateStatistics();
         
-        // 初始化各个页面 (哪怕其中一个失败，也不要影响其他的)
+        // 初始化功能模块
         initNavigation();
         initHomePage();
         initCharacterGraph();
         
-        // 增加容错隔离：如果时间轴初始化报错，不会阻断后续代码
-        try { initTimeline(); } catch(e) { console.error('时间轴初始化跳过:', e); }
-        try { initEvents(); } catch(e) { console.error('事件初始化跳过:', e); }
-        try { initIndex(); } catch(e) { console.error('索引初始化跳过:', e); }
-        try { initSearch(); } catch(e) { console.error('搜索初始化跳过:', e); }
+        // 容错初始化
+        try { initTimeline(); } catch(e) { console.error('时间轴初始化失败:', e); }
+        try { initEvents(); } catch(e) { console.error('事件初始化失败:', e); }
+        try { initIndex(); } catch(e) { console.error('索引初始化失败:', e); }
+        try { initSearch(); } catch(e) { console.error('搜索初始化失败:', e); }
         
-        // 显示首页
+        // 初始显示首页
         showSection('home');
     }).catch(error => {
         console.error('加载核心数据失败:', error);
-        alert('加载数据失败，请按F12查看控制台报错详情');
     });
 });
 
-// 数据加载 (带容错机制)
+// 通用数据加载函数
 async function fetchData(url) {
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            console.warn(`⚠️ 提示: 找不到文件 ${url} (状态码: ${response.status})。将使用空数据继续。`);
-            return[]; 
-        }
+        if (!response.ok) return [];
         return await response.json();
     } catch (error) {
-        console.warn(`⚠️ 提示: 网络请求异常 ${url}`, error);
-        return[]; 
+        console.warn(`无法加载文件: ${url}`);
+        return [];
     }
 }
 
-// 更新统计数据
+// 更新首页统计
 function updateStatistics() {
-    document.getElementById('character-count').textContent = Array.isArray(characters) ? characters.length : 0;
-    document.getElementById('relationship-count').textContent = Array.isArray(relationships) ? relationships.length : 0;
+    const charCountEl = document.getElementById('character-count');
+    const relCountEl = document.getElementById('relationship-count');
+    if(charCountEl) charCountEl.textContent = characters.length;
+    if(relCountEl) relCountEl.textContent = relationships.length;
 }
 
-// 导航初始化
+// 导航逻辑
 function initNavigation() {
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
-            
             navLinks.forEach(l => l.classList.remove('active'));
             this.classList.add('active');
-            
             showSection(target);
         });
     });
 }
 
-// 显示对应部分
 function showSection(sectionId) {
-    document.querySelectorAll('.page-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
-    
-    if (sectionId === 'characters' && currentGraph) {
-        setTimeout(() => {
-            currentGraph.centerGraph();
-        }, 100);
-    }
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(sectionId);
+    if (target) target.classList.add('active');
 }
 
-// 首页初始化
+// 首页快速访问
 function initHomePage() {
-    const quickLinks = document.querySelectorAll('.link-card');
-    quickLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+    document.querySelectorAll('.link-card').forEach(card => {
+        card.addEventListener('click', function(e) {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
-            
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            const targetLink = document.querySelector(`.nav-link[href="#${target}"]`);
-            if(targetLink) targetLink.classList.add('active');
-            
-            showSection(target);
+            const navLink = document.querySelector(`.nav-link[href="#${target}"]`);
+            if(navLink) navLink.click();
         });
     });
 }
@@ -439,6 +426,7 @@ function getTypeLabel(type) {
     return labels[type] || '未知';
 }
 
+
 // 时间轴初始化 (✨ 已完美修复 NaN 报错问题)
 function initTimeline() {
     const container = document.getElementById('timeline-container');
@@ -530,7 +518,8 @@ function initTimeline() {
     }
 }
 
-// 事件页面初始化
+
+// --- 重要事件逻辑 ---
 function initEvents() {
     const container = document.getElementById('events-container');
     if(!container) return;
@@ -677,163 +666,36 @@ window.showIndexItemDetail = function(itemId, itemType) {
     modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('active'); };
 };
 
-// 搜索初始化
+// --- 搜索与模态框通用 ---
 function initSearch() {
-    const searchInput = document.getElementById('global-search');
-    const searchBtn = document.getElementById('search-btn');
-    if(!searchInput || !searchBtn) return;
+    const input = document.getElementById('global-search');
+    const btn = document.getElementById('search-btn');
     
-    function performSearch() {
-        const query = searchInput.value.trim().toLowerCase();
-        if (!query) return;
-        
-        const allData = [
-            ...(characters || []).map(c => ({...c, type: 'character'})),
-            ...(events ||[]).map(e => ({...e, type: 'event'})),
-            ...(timeline ||[]).map(t => ({...t, type: 'timeline'}))
-        ];
-        
-        const results = allData.filter(item => {
-            if (item.name && item.name.toLowerCase().includes(query)) return true;
-            if (item.title && item.title.toLowerCase().includes(query)) return true;
-            if (item.description && item.description.toLowerCase().includes(query)) return true;
-            if (item.content && item.content.toLowerCase().includes(query)) return true;
-            if (item.event && item.event.toLowerCase().includes(query)) return true;
-            if (item.characters && item.characters.some(c => c.toLowerCase().includes(query))) return true;
-            return false;
-        });
-        
-        showSearchResults(results, query);
-    }
-    
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') performSearch();
-    });
+    const doSearch = () => {
+        const query = input.value.trim().toLowerCase();
+        if(!query) return;
+        const results = characters.filter(c => c.name.includes(query) || c.description.includes(query));
+        // 搜索结果简单处理：复用IndexDetail显示第一个结果
+        if(results.length > 0) showIndexItemDetail(results[0].id, 'persons');
+    };
+
+    btn.onclick = doSearch;
+    input.onkeypress = (e) => { if(e.key === 'Enter') doSearch(); };
 }
 
-// 显示搜索结果
-function showSearchResults(results, query) {
-    const modal = document.getElementById('detail-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    if(!modal) return;
-    
-    modalTitle.textContent = `搜索: "${query}" (${results.length}个结果)`;
-    
-    if (results.length === 0) {
-        modalBody.innerHTML = '<p>没有找到相关结果。</p>';
-    } else {
-        modalBody.innerHTML = `
-            <div class="search-results">
-                ${results.slice(0, 20).map(item => `
-                    <div class="search-result-item" data-id="${item.id}" data-type="${item.type}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
-                        <h4>${item.name || item.title || item.event || '未命名'}</h4>
-                        <p><small>类型: ${getTypeLabel(item.type)}</small></p>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        
-        modalBody.querySelectorAll('.search-result-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const itemId = item.getAttribute('data-id');
-                const itemType = item.getAttribute('data-type');
-                modal.classList.remove('active');
-                
-                if (itemType === 'character') {
-                    showSection('characters');
-                    setTimeout(() => {
-                        if (currentGraph) {
-                            d3.select('#relationship-graph').selectAll('.node')
-                                .filter(d => d.id == itemId)
-                                .dispatch('click');
-                        }
-                    }, 100);
-                } else if (itemType === 'event') {
-                    const event = events.find(e => e.id == itemId);
-                    if (event) showEventModal(event);
-                }
-            });
-        });
-    }
-    modal.classList.add('active');
-}
-
-// 显示事件模态框
 function showEventModal(event) {
     const modal = document.getElementById('detail-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
-    if(!modal) return;
     
-    modalTitle.textContent = event.title || event.event || '事件详情';
-    
+    modalTitle.textContent = event.title;
     modalBody.innerHTML = `
-        <div class="event-modal-content">
-            <div class="event-meta" style="display:flex; gap:15px; margin-bottom:15px; color:#666;">
-                <div class="meta-item"><i class="fas fa-calendar"></i> 年份: 第${event.year}年</div>
-                ${event.chapter ? `<div class="meta-item"><i class="fas fa-book-open"></i> 章节: ${event.chapter}</div>` : ''}
-            </div>
-            <div class="event-content">
-                <h4>描述</h4>
-                <p>${event.description || event.content || '暂无描述'}</p>
-                ${event.characters && event.characters.length > 0 ? `
-                <div style="margin-top:15px;">
-                    <h4>涉及人物</h4>
-                    <p>${event.characters.join('、')}</p>
-                </div>
-                ` : ''}
-            </div>
-        </div>
-    `;
-    
-    modal.classList.add('active');
-    
-    const closeBtn = modal.querySelector('.close-modal');
-    if (closeBtn && !closeBtn.dataset.bound) {
-        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-        closeBtn.dataset.bound = true;
-    }
-    
-    if (!modal.dataset.bound) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
-        modal.dataset.bound = true;
-    }
-}
-
-// 显示索引项详情
-function showIndexItemDetail(itemId, itemType) {
-    const modal = document.getElementById('detail-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    if(!modal) return;
-    
-    modalTitle.textContent = '项目详情';
-    modalBody.innerHTML = `
-        <div class="index-item-detail">
-            <p><strong>类型:</strong> ${getTypeLabel(itemType)}</p>
-            <p><strong>更多详情:</strong> 此处可扩展详细信息</p>
-        </div>
+        <p><strong>时间：</strong>第${event.year}年 · ${event.season}</p>
+        <p><strong>章节：</strong>${event.chapter}</p>
+        <hr style="margin:10px 0; border:0; border-top:1px solid #eee;">
+        <p>${event.description}</p>
+        <p style="margin-top:10px;"><strong>涉及人物：</strong>${event.characters.join('、')}</p>
     `;
     modal.classList.add('active');
-}
-
-// 辅助函数
-function getEventCategoryLabel(category) {
-    const labels = {
-        'family': '家族兴衰', 'love': '情感主线', 'fate': '命运转折',
-        'social': '社会事件', 'default': '其他事件'
-    };
-    return labels[category] || category || '未分类';
-}
-
-function getTypeLabel(type) {
-    const labels = {
-        'character': '人物', 'event': '事件', 'timeline': '时间轴',
-        'item': '器物', 'festival': '节日', 'poem': '诗词', 'proverb': '俗语'
-    };
-    return labels[type] || type;
+    modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
