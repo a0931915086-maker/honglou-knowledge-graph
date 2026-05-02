@@ -16,5 +16,29 @@
     "target": "3",
     "type": "emotional",
     "label": "表姐妹"
+  },
+  {
+    "source": "1",
+    "target": "4",
+    "type": "family",
+    "label": "堂嫂弟"
+  },
+  {
+    "source": "1",
+    "target": "5",
+    "type": "blood",
+    "label": "祖孙"
+  },
+  {
+    "source": "2",
+    "target": "5",
+    "type": "blood",
+    "label": "外祖孙"
+  },
+  {
+    "source": "3",
+    "target": "4",
+    "type": "family",
+    "label": "表姐妹"
   }
 ]
