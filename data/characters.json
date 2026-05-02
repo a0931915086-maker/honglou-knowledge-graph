@@ -1,58 +1,288 @@
 [
-  /* 1. 贾宝玉(1) 为核心的核心圈 */
-  { "source": "1", "target": "2", "type": "emotional", "label": "木石前盟/知己" },
-  { "source": "1", "target": "3", "type": "marriage", "label": "金玉良缘/夫妻" },
-  { "source": "1", "target": "5", "type": "blood", "label": "祖孙" },
-  { "source": "1", "target": "6", "type": "blood", "label": "父子" },
-  { "source": "1", "target": "21", "type": "blood", "label": "母子" },
-  { "source": "1", "target": "7", "type": "blood", "label": "亲姐弟" },
-  { "source": "1", "target": "8", "type": "blood", "label": "同父异母兄妹" },
-  { "source": "1", "target": "11", "type": "blood", "label": "堂姐弟" },
-  { "source": "1", "target": "12", "type": "blood", "label": "族兄妹" },
-  { "source": "1", "target": "14", "type": "family", "label": "叔嫂" },
-  { "source": "1", "target": "22", "type": "blood", "label": "叔侄" },
-  { "source": "1", "target": "19", "type": "blood", "label": "堂兄弟" },
-  { "source": "1", "target": "4", "type": "family", "label": "堂嫂/表姐" },
-  { "source": "1", "target": "13", "type": "blood", "label": "堂叔侄女" },
-  { "source": "1", "target": "15", "type": "family", "label": "叔侄媳" },
-  { "source": "1", "target": "17", "type": "servant", "label": "主仆" },
-  { "source": "1", "target": "18", "type": "servant", "label": "主仆" },
-  { "source": "1", "target": "9", "type": "family", "label": "远房表兄妹" },
-
-  /* 2. 林黛玉(2) 的关键关系 */
-  { "source": "2", "target": "5", "type": "blood", "label": "外祖孙" },
-  { "source": "2", "target": "6", "type": "blood", "label": "舅甥女" },
-  { "source": "2", "target": "3", "type": "family", "label": "表姐妹/情敌" },
-  { "source": "2", "target": "10", "type": "emotional", "label": "闺友" },
-
-  /* 3. 薛宝钗(3) 与 薛家/王家关系 */
-  { "source": "3", "target": "20", "type": "blood", "label": "亲兄妹" },
-  { "source": "3", "target": "21", "type": "blood", "label": "姨甥女" },
-  { "source": "3", "target": "4", "type": "blood", "label": "姑表姐妹" },
-  { "source": "20", "target": "16", "type": "marriage", "label": "主妾" },
-
-  /* 4. 王熙凤(4) 与 贾府/王家 */
-  { "source": "4", "target": "19", "type": "marriage", "label": "夫妻" },
-  { "source": "4", "target": "21", "type": "blood", "label": "姑侄女" },
-  { "source": "4", "target": "13", "type": "blood", "label": "母女" },
-  { "source": "4", "target": "5", "type": "family", "label": "孙媳妇" },
-
-  /* 5. 贾母(5) 与 家族各支 */
-  { "source": "5", "target": "19", "type": "blood", "label": "祖孙" },
-  { "source": "5", "target": "14", "type": "family", "label": "孙媳妇" },
-  { "source": "5", "target": "22", "type": "blood", "label": "曾祖孙" },
-  { "source": "5", "target": "9", "type": "blood", "label": "内侄孙女" },
-
-  /* 6. 贾政(6) 与 王夫人(21) 及其他 */
-  { "source": "6", "target": "21", "type": "marriage", "label": "夫妻" },
-  { "source": "6", "target": "7", "type": "blood", "label": "父女" },
-  { "source": "6", "target": "8", "type": "blood", "label": "父女" },
-  { "source": "6", "target": "22", "type": "blood", "label": "祖孙" },
-  { "source": "21", "target": "14", "type": "family", "label": "婆媳" },
-
-  /* 7. 其他重要血缘/辈分 */
-  { "source": "19", "target": "13", "type": "blood", "label": "父女" },
-  { "source": "14", "target": "22", "type": "blood", "label": "母子" },
-  { "source": "11", "target": "19", "type": "blood", "label": "同父异母兄妹" },
-  { "source": "12", "target": "15", "type": "family", "label": "姑嫂" }
+{
+"id": "1",
+"name": "贾宝玉",
+"type": "main",
+"family": "贾家",
+"identity": "荣国府衔玉公子",
+"description": "贾政与王夫人次子，全书灵魂。逆传统礼教，继承平等与真情。",
+"status": "公子",
+"group": 《金陵十二钗正册》,
+"birth_year": 1,
+"death_year": null,
+"events": ["黛玉进府", "共读西厢", "宝玉垒打", "晴雯被逐", "悬崖撒手"]
+},
+{
+"id": "2",
+"name": "林黛玉",
+"type": "main",
+"family": "林家",
+"identity": "贾母外孙女，宝玉知己",
+"description": "绛珠仙草转世，比宝玉小一岁。孤傲清高，才情冠绝，死于宝玉大婚之夜。",
+"status": "表小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": 2,
+"death_year": 18,
+"events": [《黛玉进府》、《黛玉葬花》、《黛玉焚稿》]
+},
+{
+"id": "3",
+"name": "薛宝钗",
+"type": "main",
+"family": "薛家",
+"identity": "宝玉之妻，金玉良缘",
+"description": "比宝玉大两岁。稳重圆通，恪守封建礼教，终身错误于枯槁婚姻。",
+"status": "表小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": null,
+"events": ["宝钗进府", "金锁谜云", "宝玉娶亲"]
+},
+{
+"id": "4，
+"name": "贾元春",
+"类型": "专业",
+"family": "贾家",
+"identity": "贾政长女，当朝贤德妃",
+"description": "宝玉长姐。入宫为妃，支撑家族繁华，却叹深宫如牢笼。",
+"status": "贵妃",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": 17,
+"events": ["元妃省亲", "宫中薨逝"]
+},
+{
+"id": "5，
+"name": "贾探春",
+"类型": "专业",
+"family": "贾家",
+"identity": "荣国府三小姐，宝玉之妹",
+"description": "比宝玉小约两岁。庶出但精明干练，简直管理才华，被称为‘玫瑰花’。",
+"status": "小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": 3,
+"death_year": null,
+"events": ["秋爽斋改革", "远嫁海疆"]
+},
+{
+"id": "6，
+"name": "史湘云",
+"类型": "专业",
+"family": "史家",
+"identity": "贾母内侄孙女",
+"description": "比宝玉略小，性格豪爽阔大，不束缚小节，常女扮男装。",
+"status": "表小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": 2,
+"death_year": null,
+"events": ["醉卧芍药茵", "联诗中秋"]
+},
+{
+"id": "7，
+"name": "贾迎春",
+"类型": "专业",
+"family": "贾家",
+"identity": "荣国府二小姐，宝玉之姐",
+"description": "宝玉堂姐，性格恍惚。因父亲债务被剧本给孙家，受虐而死。",
+"status": "小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": 18,
+"events": ["误嫁中山狼"]
+},
+{
+"id": "8，
+"name": "贾惜春",
+"类型": "专业",
+"family": "贾家",
+"identity": "宁国府四小姐，宝玉之妹",
+"description": "比宝玉小约五岁。最终看透家族衰败，剪发行家。",
+"status": "小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": 6,
+"death_year": null,
+"events": ["画大观园", "矢志出家"]
+},
+{
+"id": "9，
+"name": "王熙凤",
+"类型": "专业",
+"family": "王家",
+"identity": "荣国府管家奶奶，贾琏之妻",
+"description": "比宝玉年长。八面玲珑，手段毒辣，最终'机关算尽太聪明'。",
+"status": "少奶奶",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": 19,
+"events": ["协理宁国府","抄检大观园"]
+},
+{
+"id": "10",
+"name": "贾巧姐",
+"type": "minor",
+"family": "贾家",
+"identity": "贾琏与王熙凤之女",
+"description": "宝玉已侄女。出生时宝玉十几岁，后流落烟花，被刘姥姥救回农家。",
+"status": "小姐",
+"group": 《金陵十二钗正册》,
+"birth_year": 14,
+"death_year": null,
+"events": ["流落烟花", "刘姥姥救巧姐"]
+},
+{
+"id": "11",
+"name": "李纨",
+"类型": "专业",
+"family": "贾家",
+"identity": "贾珠遗孀，宝玉嫂子",
+"description": "守寡多年，如槁木死灰。在诗社中负责评判，终由子贵得封。",
+"status": "少奶奶",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": null,
+"events": ["稻香村理家"]
+},
+{
+"id": "12",
+"name": "秦可卿",
+"类型": "专业",
+"family": "贾家",
+"identity": "宁国府少奶奶，贾蓉之妻",
+"description": "比宝玉年长。风流婉转，其死揭开贾家衰败的序幕。",
+"status": "少奶奶",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": 11,
+"events": ["托梦凤姐", "淫丧天香楼"]
+},
+{
+"id": "13",
+"name": "妙玉",
+"type": "minor",
+"family": "未知",
+"identity": "栊翠庵女尼",
+"description": "带发修行的仕宦小姐。年龄大于宝玉。性格孤高，终陷泥淖。",
+"status": "女尼",
+"group": 《金陵十二钗正册》,
+"birth_year": null,
+"death_year": null,
+"events": ["栊翠庵品茶"]
+},
+{
+"id": "14",
+"name": "香菱",
+"type": "minor",
+"family": "甄家/薛家",
+"identity": "原名甄英莲，薛蟠之妾",
+"description": "比宝玉大三岁左右。命途多舛，被拐卖后入薛家，因夏金桂虐待而死。",
+"status": "妾室",
+"group": "金陵十二钗副册",
+"birth_year": null,
+"death_year": 18,
+"events": ["香菱学诗", "金桂苦难"]
+},
+{
+"id": "15",
+"name": "晴雯",
+"类型": "专业",
+"family": "未知",
+"identity": "宝玉房中大丫鬟",
+"description": "年龄与宝玉相仿（略大）。样貌出众，性格牵辣，最终病死荒郊。",
+"status": "丫鬟",
+"group": "金陵十二钗又副册",
+"birth_year": null,
+"death_year": 17,
+"events": ["晴雯撕扇", "病补雀金裘"]
+},
+{
+"id": "16",
+"name": "袭人",
+"类型": "专业",
+"family": "花家",
+"identity": "宝玉房中首席丫鬟",
+"description": "比宝玉大两岁。贤惠周到，是封建秩序的忠诚守护者。",
+"status": "丫鬟",
+"group": "金陵十二钗又副册",
+"birth_year": null,
+"death_year": null,
+"events": ["初试云雨", "情切切良箴"]
+},
+{
+"id": "17",
+"name": "贾母",
+"类型": "专业",
+"family": "史家",
+"identity": "荣国府最高长辈",
+"description": "史太君，贾府的定海神针。宠爱宝玉，极推崇享乐生活。",
+"status": "老祖宗",
+"group": null,
+"birth_year": null,
+"death_year": 20,
+"events": [《黛玉进府》,《临终遗嘱》]
+},
+{
+"id": "18，
+"name": "贾政",
+"类型": "专业",
+"family": "贾家",
+"identity": "荣国府二老爷，宝玉之父",
+"description": "儒家礼教代表。与宝玉矛盾深刻，试图通过棍棒教育改变儿子。",
+"status": "老爷",
+"group": null,
+"birth_year": null,
+"death_year": null,
+"events": ["痛打宝玉"]
+},
+{
+"id": "19，
+"name": "贾琏",
+"类型": "专业",
+"family": "贾家",
+"identity": "荣国府承爵子弟，凤姐之夫",
+"description": "不喜读书，好色但具备管理能力。是荣府对外事务的主管。",
+"status": "少爷",
+"group": null,
+"birth_year": null,
+"death_year": null,
+"events": ["下江南","偷娶尤二姐"]
+},
+{
+"id": "20，
+"name": "薛蟠",
+"类型": "专业",
+"family": "薛家",
+"identity": "薛宝钗之兄",
+"description": "‘呆霸王’，仗势欺人，荒唐无度，反映了四大家族的腐朽。”,
+"status": "少爷",
+"group": null,
+"birth_year": null,
+"death_year": null,
+"events": ["争买香菱"]
+},
+{
+"id": "21",
+"name": "王夫人",
+"类型": "专业",
+"family": "王家",
+"identity": "宝玉之母，正室太太",
+"description": "外表慈悲，实则固执冷酷，推进晴雯的决策者。",
+"status": "夫人",
+"group": null,
+"birth_year": null,
+"death_year": null,
+"events": ["抄检大观园"]
+},
+{
+"id": "22",
+"name": "贾兰",
+"type": "minor",
+"family": "贾家",
+"identity": "贾珠之子，宝玉之侄",
+"description": "比宝玉小约九岁。勤学刻苦，最终考取功名，是家族唯一的火种。",
+"status": "孙少爷",
+"group": null,
+"birth_year": 10,
+"death_year": null,
+"events": ["金榜题名"]
+}
 ]
