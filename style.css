@@ -609,48 +609,206 @@ select, input[type="text"] {
     animation: slideIn 0.3s ease;
 }
 
-/* 人物图谱 SVG 专用样式 */
-#relationship-graph svg {
-    cursor: grab;
-    background-color: #ffffff;
+/* 图谱容器样式 */
+#relationship-graph {
+    width: 100%;
+    height: 600px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
 }
 
-#relationship-graph svg:active {
-    cursor: grabbing;
-}
-
-.node {
-    cursor: pointer;
-}
-
+/* 节点样式 */
 .node circle {
-    transition: r 0.2s;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.node:hover circle {
-    r: 25;
-    filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
+.node circle:hover {
+    stroke-width: 3px;
+    stroke: #ff6b6b;
 }
 
-.node text {
-    font-weight: bold;
-    pointer-events: none; /* 防止文字干扰点击 */
-    text-shadow: 1px 1px 0px #fff, -1px -1px 0px #fff;
-}
-
-line.link {
+/* 连线样式 */
+.link {
     stroke-opacity: 0.6;
-    stroke-dasharray: none;
 }
 
-/* 详情面板美化 */
-.character-detail-info {
-    animation: fadeIn 0.4s ease;
+/* 无数据提示 */
+.no-data-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    text-align: center;
+    padding: 2rem;
 }
 
-.character-detail-info p {
-    margin-bottom: 8px;
-    font-size: 0.95rem;
+.no-data-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ddd;
+}
+
+/* 加载状态 */
+.loading-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.loading-state i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #8b0000;
+}
+
+/* 错误提示 */
+.error-notice {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.error-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.error-content i {
+    color: #e67e22;
+    font-size: 1.5rem;
+    margin-top: 0.2rem;
+}
+
+.error-content h4 {
+    color: #d35400;
+    margin-bottom: 0.5rem;
+}
+
+.error-content p {
+    color: #7d6608;
+    margin-bottom: 0.5rem;
+}
+
+/* 人物详情面板 */
+#character-detail {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.character-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.character-badge {
+    background: #8b0000;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.character-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+
+.info-row strong {
+    min-width: 60px;
+    color: #333;
+}
+
+.character-description h4,
+.character-relationships h4 {
+    color: #333;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.relationships-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.relationship-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.relation-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.relation-type {
+    font-size: 0.8rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    background: #f0f0f0;
+    color: #666;
+}
+
+.relation-type.blood { background: #f8d7da; color: #721c24; }
+.relation-type.marriage { background: #d4edda; color: #155724; }
+.relation-type.master-servant { background: #fff3cd; color: #856404; }
+.relation-type.emotional { background: #d1ecf1; color: #0c5460; }
+.relation-type.family { background: #e2d9f3; color: #412874; }
+
+/* 事件卡片 */
+.event-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.event-card h3 {
+    color: #8b0000;
+    margin-bottom: 0.5rem;
+}
+
+.event-card p {
+    color: #666;
+    line-height: 1.5;
 }
 
 @keyframes slideIn {
