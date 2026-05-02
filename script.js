@@ -124,8 +124,12 @@ function initCharacterGraph() {
     
     const g = svg.append('g');
     
-    const simulation = d3.forceSimulation(characters)
-        .force('link', d3.forceLink(relationships).id(d => d.id).distance(120))
+    // 准备力导向数据
+    let filteredNodes = JSON.parse(JSON.stringify(characters));
+    let filteredLinks = JSON.parse(JSON.stringify(relationships));
+
+    const simulation = d3.forceSimulation(filteredNodes)
+        .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(120))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(35));
@@ -137,42 +141,113 @@ function initCharacterGraph() {
         .attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
         .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#999');
     
-    const link = g.append('g').attr('class', 'links')
-        .selectAll('line').data(relationships).enter().append('line')
-        .attr('class', 'link')
-        .attr('stroke', d => getLinkColor(d.type))
-        .attr('stroke-width', 2).attr('stroke-opacity', 0.6).attr('marker-end', 'url(#arrow)');
-    
-    const node = g.append('g').attr('class', 'nodes')
-        .selectAll('g').data(characters).enter().append('g')
-        .attr('class', 'node')
-        .call(d3.drag()
-            .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
-    
-    node.append('circle').attr('r', d => getNodeRadius(d.type))
-        .attr('fill', d => getNodeColor(d.type)).attr('stroke', '#fff').attr('stroke-width', 2).style('cursor', 'pointer');
-    
-    node.append('text').text(d => d.name).attr('x', 0).attr('y', d => getNodeRadius(d.type) + 15)
-        .attr('text-anchor', 'middle').attr('font-size', '12px').attr('fill', '#333').style('pointer-events', 'none');
-    
-    node.on('mouseover', function(e, d) {
-        d3.select(this).select('circle').attr('stroke', '#ff6b6b').attr('stroke-width', 3);
-        link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.2);
-    }).on('mouseout', function() {
-        d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 2);
-        link.attr('stroke-opacity', 0.6);
-    }).on('click', (e, d) => {
-        focusOnCharacter(d);
+    let link = g.append('g').attr('class', 'links').selectAll('line');
+    let node = g.append('g').attr('class', 'nodes').selectAll('g');
+
+    function updateGraph() {
+        const relType = document.getElementById('relation-filter')?.value || 'all';
+        const familyType = document.getElementById('family-filter')?.value || 'all';
+
+        // 筛选逻辑
+        const activeLinks = relationships.filter(l => 
+            (relType === 'all' || l.type === relType)
+        );
+        const activeNodes = characters.filter(n => 
+            (familyType === 'all' || (n.family && n.family.includes(getFamilyName(familyType))))
+        );
+
+        // 重新渲染连线
+        link = link.data(activeLinks, d => `${d.source}-${d.target}`);
+        link.exit().remove();
+        link = link.enter().append('line')
+            .attr('class', 'link')
+            .attr('stroke', d => getLinkColor(d.type))
+            .attr('stroke-width', 2).attr('stroke-opacity', 0.6)
+            .attr('marker-end', 'url(#arrow)')
+            .merge(link);
+
+        // 重新渲染节点
+        node = node.data(activeNodes, d => d.id);
+        node.exit().remove();
+        const nodeEnter = node.enter().append('g').attr('class', 'node')
+            .call(d3.drag()
+                .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+                .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+        nodeEnter.append('circle').attr('r', d => getNodeRadius(d.type))
+            .attr('fill', d => getNodeColor(d.type)).attr('stroke', '#fff').attr('stroke-width', 2);
+        nodeEnter.append('text').text(d => d.name).attr('y', d => getNodeRadius(d.type) + 15)
+            .attr('text-anchor', 'middle').style('font-size', '12px').style('pointer-events', 'none');
+
+        node = nodeEnter.merge(node);
+
+        node.on('mouseover', function(e, d) {
+            d3.select(this).select('circle').attr('stroke', '#ff6b6b').attr('stroke-width', 3);
+            link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
+        }).on('mouseout', function() {
+            d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 2);
+            link.attr('stroke-opacity', 0.6);
+        }).on('click', (e, d) => {
+            showCharacterDetail(d);
+            const scale = 1.5;
+            g.transition().duration(750).attr('transform', `translate(${width/2 - d.x*scale},${height/2 - d.y*scale}) scale(${scale})`);
+        });
+
+        simulation.nodes(activeNodes);
+        simulation.force('link').links(activeLinks);
+        simulation.alpha(1).restart();
+    }
+
+    updateGraph();
+
+    // 绑定下拉框事件
+    document.getElementById('relation-filter')?.addEventListener('change', updateGraph);
+    document.getElementById('family-filter')?.addEventListener('change', updateGraph);
+    document.getElementById('reset-view')?.addEventListener('click', () => {
+        document.getElementById('relation-filter').value = 'all';
+        document.getElementById('family-filter').value = 'all';
+        updateGraph();
+        currentGraph.center();
     });
-    
-    svg.call(d3.zoom().extent([[0, 0], [width, height]]).scaleExtent([0.1, 4]).on('zoom', (event) => g.attr('transform', event.transform)));
+
+    svg.call(d3.zoom().on('zoom', (event) => g.attr('transform', event.transform)));
     
     simulation.on('tick', () => {
-        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
         node.attr('transform', d => `translate(${d.x},${d.y})`);
     });
+    
+    currentGraph = { center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)') };
+}
+
+// 侧边栏详情
+function showCharacterDetail(character) {
+    const detailPanel = document.getElementById('character-detail');
+    if (!detailPanel) return;
+    const related = relationships.filter(r => (r.source.id || r.source) === character.id || (r.target.id || r.target) === character.id);
+    const relHtml = related.map(rel => {
+        const otherId = (rel.source.id || rel.source) === character.id ? (rel.target.id || rel.target) : (rel.source.id || rel.source);
+        const otherChar = characters.find(c => c.id === otherId);
+        return otherChar ? `<div class="relationship-item"><span class="relation-name">${otherChar.name}</span><span class="relation-type ${rel.type}">${rel.label}</span></div>` : '';
+    }).join('');
+    
+    detailPanel.innerHTML = `
+        <div class="character-detail">
+            <div class="character-header">
+                <h3>${character.name}</h3>
+                <span class="character-badge" style="background:#5c0000; margin-right:5px;">${character.group || '未入册'}</span>
+                <span class="character-badge">${getTypeLabel(character.type)}</span>
+            </div>
+            <div class="character-info">
+                <div class="info-row"><strong>身份：</strong><span>${character.identity || '未指定'}</span></div>
+                <div class="info-row"><strong>家族：</strong><span>${character.family || '未指定'}</span></div>
+                <div class="info-row"><strong>籍册：</strong><span>${character.group || '其他'}</span></div>
+            </div>
+            <div class="character-description"><h4>人物描述</h4><p>${character.description || '暂无描述'}</p></div>
+            ${relHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relHtml}</div></div>` : ''}
+        </div>`;
     
     // 聚焦人物的辅助函数
     function focusOnCharacter(d) {
