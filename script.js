@@ -105,7 +105,7 @@ function initHomePage() {
     });
 }
 
-// 人物关系图初始化
+// --- 人物图谱逻辑 ---
 function initCharacterGraph() {
     const graphContainer = document.getElementById('relationship-graph');
     if (!graphContainer) {
@@ -425,99 +425,28 @@ function getTypeLabel(type) {
     };
     return labels[type] || '未知';
 }
-
-
-// 时间轴初始化 (✨ 已完美修复 NaN 报错问题)
+// --- 时间轴逻辑 ---
 function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
-    
-    try {
-        // 创建时间轴数据
-        const timelineData = timeline.map(item => {
-            // ⭐ 关键修复: 将 1, 15 这样的年份强制补齐为 4 位数的标准格式 "0001", "0015"
-            // 否则 Date.parse 解析会失败并返回 NaN
-            const yearNum = parseInt(item.year) || 1;
-            const yearStr = String(yearNum).padStart(4, '0');
 
-            return {
-                id: item.id,
-                content: item.event,
-                start: `${yearStr}-01-01`,  // 变成了标准的 '0001-01-01'
-                end: `${yearStr}-12-31`,    // 变成了标准的 '0001-12-31'
-                type: 'range',
-                className: item.type || 'default',
-                title: item.chapter || '',
-                description: item.description || ''
-            };
-        });
-        
-        // 创建时间轴选项
-        const options = {
-            width: '100%',
-            height: '100%',
-            // ⭐ 关键修复: 这里也必须使用标准的 4 位数年份
-            min: '0001-01-01',
-            max: '0020-12-31', 
-            start: '0001-01-01',
-            end: '0015-12-31',
-            zoomMin: 1000 * 60 * 60 * 24 * 365, 
-            zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, 
-            moveable: true,
-            zoomable: true,
-            orientation: {
-                axis: 'both',
-                item: 'top'
-            },
-            tooltip: {
-                followMouse: true,
-                overflowMethod: 'cap'
-            },
-            format: {
-                minorLabels: {
-                    year: 'YYYY年'
-                }
-            }
-        };
-        
-        if (typeof vis !== 'undefined') {
-            const timelineInstance = new vis.Timeline(container, timelineData, options);
-            
-            const zoomInBtn = document.getElementById('zoom-in');
-            const zoomOutBtn = document.getElementById('zoom-out');
-            const fitBtn = document.getElementById('fit-timeline');
+    const items = new vis.DataSet(timeline.map(t => ({
+        id: t.id,
+        content: t.event,
+        start: `${String(t.year).padStart(4, '0')}-01-01`,
+        className: t.type
+    })));
 
-            if(zoomInBtn) zoomInBtn.addEventListener('click', () => {
-                const range = timelineInstance.getWindow();
-                const zoom = (range.end - range.start) * 0.7;
-                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
-                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-            });
-            
-            if(zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
-                const range = timelineInstance.getWindow();
-                const zoom = (range.end - range.start) * 1.3;
-                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
-                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
-            });
-            
-            if(fitBtn) fitBtn.addEventListener('click', () => {
-                timelineInstance.fit();
-            });
-            
-            timelineInstance.on('click', function(properties) {
-                if (properties.item) {
-                    const item = timelineData.find(d => d.id == properties.item);
-                    if (item) showEventModal(item);
-                }
-            });
-        }
-    } catch (err) {
-        console.error("时间轴渲染出错:", err);
-        container.innerHTML = `<p style="color:red;text-align:center;padding:20px;">时间轴加载失败: ${err.message}</p>`;
-    }
+    const options = {
+        min: '0001-01-01',
+        max: '0020-12-31',
+        start: '0001-01-01',
+        end: '0015-12-31',
+        zoomMin: 1000 * 60 * 60 * 24 * 30 // 一个月
+    };
+
+    new vis.Timeline(container, items, options);
 }
-
 
 // --- 重要事件逻辑 ---
 function initEvents() {
