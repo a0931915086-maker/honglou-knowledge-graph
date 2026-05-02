@@ -186,12 +186,6 @@
     "label": "姑侄媳"
   },
   {
-    "source": "19",
-    "target": "10",
-    "type": "blood",
-    "label": "父女"
-  },
-  {
     "source": "11",
     "target": "22",
     "type": "blood",
