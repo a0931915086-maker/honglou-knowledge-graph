@@ -3,63 +3,63 @@
     "id": "1",
     "year": 0,
     "event": "甄士隐梦幻识通灵",
-    "type": "fantasy",
+    "type": "fate",
     "chapter": "第一回"
   },
   {
     "id": "2",
     "year": 1,
     "event": "黛玉进府",
-    "type": "family",
+    "type": "love",
     "chapter": "第三回"
   },
   {
     "id": "3",
     "year": 1,
     "event": "葫芦僧乱判葫芦案",
-    "type": "society",
+    "type": "social",
     "chapter": "第四回"
   },
   {
     "id": "4",
     "year": 1,
     "event": "宝钗进京",
-    "type": "family",
+    "type": "love",
     "chapter": "第四回"
   },
   {
     "id": "5",
     "year": 1,
     "event": "贾宝玉神游太虚境",
-    "type": "fantasy",
+    "type": "fate",
     "chapter": "第五回"
   },
   {
     "id": "6",
     "year": 1,
     "event": "刘姥姥一进荣国府",
-    "type": "society",
+    "type": "social",
     "chapter": "第六回"
   },
   {
     "id": "7",
     "year": 2,
     "event": "宝黛初会金锁（识金锁）",
-    "type": "romance",
+    "type": "love",
     "chapter": "第八回"
   },
   {
     "id": "8",
     "year": 2,
     "event": "王熙凤毒设相思局（贾瑞之死）",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第十二回"
   },
   {
     "id": "9",
     "year": 2,
     "event": "秦可卿之死",
-    "type": "tragedy",
+    "type": "family",
     "chapter": "第十三回"
   },
   {
@@ -73,126 +73,126 @@
     "id": "11",
     "year": 3,
     "event": "宝黛共读西厢",
-    "type": "romance",
+    "type": "love",
     "chapter": "第二十三回"
   },
   {
     "id": "12",
     "year": 3,
-    "event": "芒种节黛玉葬花",
-    "type": "romance",
+    "event": "黛玉葬花",
+    "type": "love",
     "chapter": "第二十七回"
   },
   {
     "id": "13",
     "year": 3,
     "event": "清虚观打醮",
-    "type": "society",
+    "type": "social",
     "chapter": "第二十九回"
   },
   {
     "id": "14",
     "year": 3,
     "event": "晴雯撕扇",
-    "type": "personal",
+    "type": "social",
     "chapter": "第三十一回"
   },
   {
     "id": "15",
     "year": 3,
     "event": "金钏投井",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第三十二回"
   },
   {
     "id": "16",
     "year": 3,
     "event": "宝玉挨打",
-    "type": "family",
+    "type": "love",
     "chapter": "第三十三回"
   },
   {
     "id": "17",
     "year": 4,
     "event": "海棠结社（大观园诗社成立）",
-    "type": "literature",
+    "type": "social",
     "chapter": "第三十七回"
   },
   {
     "id": "18",
     "year": 4,
     "event": "史湘云设螃蟹宴（咏菊诗会）",
-    "type": "literature",
+    "type": "social",
     "chapter": "第三十八回"
   },
   {
     "id": "19",
     "year": 4,
     "event": "刘姥姥二进荣国府",
-    "type": "society",
+    "type": "social",
     "chapter": "第四十回"
   },
   {
     "id": "20",
     "year": 4,
     "event": "鸳鸯抗婚",
-    "type": "personal",
+    "type": "social",
     "chapter": "第四十六回"
   },
   {
     "id": "21",
     "year": 4,
     "event": "香菱学诗",
-    "type": "literature",
+    "type": "social",
     "chapter": "第四十八回"
   },
   {
     "id": "22",
     "year": 4,
     "event": "芦雪庵争联即景诗",
-    "type": "literature",
+    "type": "social",
     "chapter": "第五十回"
   },
   {
     "id": "23",
     "year": 4,
     "event": "晴雯病补雀金裘",
-    "type": "personal",
+    "type": "social",
     "chapter": "第五十二回"
   },
   {
     "id": "24",
     "year": 5,
     "event": "探春理家",
-    "type": "family",
+    "type": "social",
     "chapter": "第五十五回"
   },
   {
     "id": "25",
     "year": 5,
     "event": "慧紫鹃情辞试忙玉",
-    "type": "romance",
+    "type": "love",
     "chapter": "第五十七回"
   },
   {
     "id": "26",
     "year": 5,
     "event": "湘云醉眠芍药裀",
-    "type": "literature",
+    "type": "social",
     "chapter": "第六十二回"
   },
   {
     "id": "27",
     "year": 5,
     "event": "尤三姐自刎",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第六十六回"
   },
   {
     "id": "28",
     "year": 5,
     "event": "尤二姐吞金",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第六十九回"
   },
   {
@@ -206,77 +206,77 @@
     "id": "30",
     "year": 6,
     "event": "抄检大观园",
-    "type": "tragedy",
+    "type": "family",
     "chapter": "第七十四回"
   },
   {
     "id": "31",
     "year": 6,
     "event": "晴雯夭亡",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第七十七回"
   },
   {
     "id": "32",
     "year": 6,
     "event": "迎春误嫁中山狼",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第七十九回"
   },
   {
     "id": "33",
     "year": 7,
     "event": "宝玉失玉",
-    "type": "family",
+    "type": "love",
     "chapter": "第九十四回"
   },
   {
     "id": "34",
     "year": 8,
     "event": "林黛玉焚稿断痴情",
-    "type": "tragedy",
+    "type": "love",
     "chapter": "第九十七回"
   },
   {
     "id": "35",
     "year": 8,
     "event": "薛宝钗出闺成大礼",
-    "type": "family",
+    "type": "love",
     "chapter": "第九十七回"
   },
   {
     "id": "36",
     "year": 8,
     "event": "探春远嫁海疆",
-    "type": "personal",
+    "type": "social",
     "chapter": "第一百回"
   },
   {
     "id": "37",
     "year": 9,
     "event": "锦衣军查抄宁国府（贾府被抄）",
-    "type": "society",
+    "type": "social",
     "chapter": "第一百零五回"
   },
   {
     "id": "38",
     "year": 9,
     "event": "贾母病逝",
-    "type": "tragedy",
+    "type": "social",
     "chapter": "第一百一十回"
   },
   {
     "id": "39",
     "year": 10,
     "event": "王熙凤历幻返金陵（病逝）",
-    "type": "tragedy",
+    "type": "fate",
     "chapter": "第一百一十四回"
   },
   {
     "id": "40",
     "year": 10,
     "event": "贾宝玉悬崖撒手（出家）",
-    "type": "personal",
+    "type": "fate",
     "chapter": "第一百二十回"
   }
 ]
