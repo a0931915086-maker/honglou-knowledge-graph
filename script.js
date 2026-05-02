@@ -221,13 +221,31 @@ function initCharacterGraph() {
     
     currentGraph = { center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)') };
 }
+    
+    // 聚焦人物的辅助函数
+    function focusOnCharacter(d) {
+        showCharacterDetail(d);
+        const scale = 2;
+        const x = width / 2 - d.x * scale;
+        const y = height / 2 - d.y * scale;
+        g.transition().duration(750).attr('transform', `translate(${x},${y}) scale(${scale})`);
+    }
+
+    currentGraph = { 
+        center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)'),
+        focus: (id) => {
+            const d = characters.find(c => c.id == id);
+            if(d) focusOnCharacter(d);
+        }
+    };
+}
 
 // 侧边栏详情
 function showCharacterDetail(character) {
     const detailPanel = document.getElementById('character-detail');
     if (!detailPanel) return;
     const related = relationships.filter(r => (r.source.id || r.source) === character.id || (r.target.id || r.target) === character.id);
-    const relHtml = related.map(rel => {
+    const relatedHtml = related.map(rel => {
         const otherId = (rel.source.id || rel.source) === character.id ? (rel.target.id || rel.target) : (rel.source.id || rel.source);
         const otherChar = characters.find(c => c.id === otherId);
         return otherChar ? `<div class="relationship-item"><span class="relation-name">${otherChar.name}</span><span class="relation-type ${rel.type}">${rel.label}</span></div>` : '';
@@ -245,9 +263,13 @@ function showCharacterDetail(character) {
                 <div class="info-row"><strong>家族：</strong><span>${character.family || '未指定'}</span></div>
                 <div class="info-row"><strong>籍册：</strong><span>${character.group || '其他'}</span></div>
             </div>
-            <div class="character-description"><h4>人物描述</h4><p>${character.description || '暂无描述'}</p></div>
-            ${relHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relHtml}</div></div>` : ''}
-        </div>`;
+            <div class="character-description">
+                <h4>人物描述</h4>
+                <p>${character.description || '暂无详细描述'}</p>
+            </div>
+            ${relatedHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relatedHtml}</div></div>` : ''}
+        </div>
+    `;
 }
 
 // --- 时间轴逻辑 ---
