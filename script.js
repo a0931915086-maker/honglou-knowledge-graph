@@ -250,25 +250,7 @@ function showCharacterDetail(character) {
         </div>`;
 }
     
-    // 聚焦人物的辅助函数
-    function focusOnCharacter(d) {
-        showCharacterDetail(d);
-        const scale = 2;
-        const x = width / 2 - d.x * scale;
-        const y = height / 2 - d.y * scale;
-        g.transition().duration(750).attr('transform', `translate(${x},${y}) scale(${scale})`);
-    }
-
-    currentGraph = { 
-        center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)'),
-        focus: (id) => {
-            const d = characters.find(c => c.id == id);
-            if(d) focusOnCharacter(d);
-        }
-    };
-}
-
-// --- 时间轴逻辑 ---
+ // --- 时间轴逻辑 ---
 function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
