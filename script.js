@@ -17,7 +17,6 @@ let indexDataCache = {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 加载数据
     Promise.all([
         fetchData('data/characters.json'),
         fetchData('data/relationships.json'),
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
         events = evts;
         timeline = tml;
         
-        // 缓存索引数据
         indexDataCache.persons = chars;
         indexDataCache.items = items;
         indexDataCache.festivals = festivals;
@@ -52,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         showSection('home');
     }).catch(error => {
-        console.error('加载数据失败:', error);
+        console.error('加载核心数据失败:', error);
     });
 });
 
@@ -92,8 +90,6 @@ function showSection(sectionId) {
     });
     const targetSection = document.getElementById(sectionId);
     if (targetSection) targetSection.classList.add('active');
-    
-    // 如果跳转到人物图谱，尝试居中显示
     if (sectionId === 'characters' && currentGraph) {
         setTimeout(() => currentGraph.center(), 100);
     }
@@ -110,7 +106,7 @@ function initHomePage() {
     });
 }
 
-// --- 人物关系图谱逻辑 ---
+// --- 人物关系图谱核心 (复刻筛选与视觉) ---
 function initCharacterGraph() {
     const graphContainer = document.getElementById('relationship-graph');
     if (!graphContainer || characters.length === 0) return;
@@ -124,16 +120,14 @@ function initCharacterGraph() {
     
     const g = svg.append('g');
     
-    // 准备力导向数据
-    let filteredNodes = JSON.parse(JSON.stringify(characters));
-    let filteredLinks = JSON.parse(JSON.stringify(relationships));
-
-    const simulation = d3.forceSimulation(filteredNodes)
-        .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(120))
+    // 基础力学设置
+    const simulation = d3.forceSimulation()
+        .force('link', d3.forceLink().id(d => d.id).distance(120))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(35));
     
+    // 定义箭头
     svg.append('defs').selectAll('marker')
         .data(['arrow']).enter().append('marker')
         .attr('id', d => d).attr('viewBox', '0 -5 10 10')
@@ -141,33 +135,40 @@ function initCharacterGraph() {
         .attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
         .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#999');
     
-    let link = g.append('g').attr('class', 'links').selectAll('line');
-    let node = g.append('g').attr('class', 'nodes').selectAll('g');
+    let linkGroup = g.append('g').attr('class', 'links');
+    let nodeGroup = g.append('g').attr('class', 'nodes');
 
+    // 核心筛选渲染函数
     function updateGraph() {
-        const relType = document.getElementById('relation-filter')?.value || 'all';
-        const familyType = document.getElementById('family-filter')?.value || 'all';
+        const relFilter = document.getElementById('relation-filter')?.value || 'all';
+        const familyFilter = document.getElementById('family-filter')?.value || 'all';
 
-        // 筛选逻辑
-        const activeLinks = relationships.filter(l => 
-            (relType === 'all' || l.type === relType)
-        );
+        // 1. 筛选节点
         const activeNodes = characters.filter(n => 
-            (familyType === 'all' || (n.family && n.family.includes(getFamilyName(familyType))))
+            familyFilter === 'all' || (n.family && n.family.includes(getFamilyName(familyFilter)))
         );
+        const activeNodeIds = new Set(activeNodes.map(n => n.id));
 
-        // 重新渲染连线
-        link = link.data(activeLinks, d => `${d.source}-${d.target}`);
+        // 2. 筛选连线 (必须确保连线的两端节点都在当前显示的节点列表中)
+        const activeLinks = relationships.filter(l => {
+            const sId = l.source.id || l.source;
+            const tId = l.target.id || l.target;
+            const matchesType = relFilter === 'all' || l.type === relFilter;
+            return matchesType && activeNodeIds.has(sId) && activeNodeIds.has(tId);
+        });
+
+        // 3. 更新连线
+        const link = linkGroup.selectAll('line').data(activeLinks, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
         link.exit().remove();
-        link = link.enter().append('line')
+        const linkEnter = link.enter().append('line')
             .attr('class', 'link')
             .attr('stroke', d => getLinkColor(d.type))
             .attr('stroke-width', 2).attr('stroke-opacity', 0.6)
-            .attr('marker-end', 'url(#arrow)')
-            .merge(link);
+            .attr('marker-end', 'url(#arrow)');
+        const combinedLinks = linkEnter.merge(link);
 
-        // 重新渲染节点
-        node = node.data(activeNodes, d => d.id);
+        // 4. 更新节点
+        const node = nodeGroup.selectAll('g').data(activeNodes, d => d.id);
         node.exit().remove();
         const nodeEnter = node.enter().append('g').attr('class', 'node')
             .call(d3.drag()
@@ -180,28 +181,41 @@ function initCharacterGraph() {
         nodeEnter.append('text').text(d => d.name).attr('y', d => getNodeRadius(d.type) + 15)
             .attr('text-anchor', 'middle').style('font-size', '12px').style('pointer-events', 'none');
 
-        node = nodeEnter.merge(node);
+        const combinedNodes = nodeEnter.merge(node);
 
-        node.on('mouseover', function(e, d) {
+        // 交互事件
+        combinedNodes.on('mouseover', function(e, d) {
             d3.select(this).select('circle').attr('stroke', '#ff6b6b').attr('stroke-width', 3);
-            link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
+            combinedLinks.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
         }).on('mouseout', function() {
             d3.select(this).select('circle').attr('stroke', '#fff').attr('stroke-width', 2);
-            link.attr('stroke-opacity', 0.6);
+            combinedLinks.attr('stroke-opacity', 0.6);
         }).on('click', (e, d) => {
-            showCharacterDetail(d);
-            const scale = 1.5;
-            g.transition().duration(750).attr('transform', `translate(${width/2 - d.x*scale},${height/2 - d.y*scale}) scale(${scale})`);
+            focusOnNode(d);
         });
 
+        // 5. 更新力模拟
         simulation.nodes(activeNodes);
         simulation.force('link').links(activeLinks);
         simulation.alpha(1).restart();
+
+        simulation.on('tick', () => {
+            combinedLinks.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                         .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+            combinedNodes.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
     }
 
-    updateGraph();
+    // 辅助聚焦函数
+    function focusOnNode(d) {
+        showCharacterDetail(d);
+        const scale = 2;
+        const x = width / 2 - d.x * scale;
+        const y = height / 2 - d.y * scale;
+        g.transition().duration(750).attr('transform', `translate(${x},${y}) scale(${scale})`);
+    }
 
-    // 绑定下拉框事件
+    // 监听筛选器
     document.getElementById('relation-filter')?.addEventListener('change', updateGraph);
     document.getElementById('family-filter')?.addEventListener('change', updateGraph);
     document.getElementById('reset-view')?.addEventListener('click', () => {
@@ -211,15 +225,17 @@ function initCharacterGraph() {
         currentGraph.center();
     });
 
-    svg.call(d3.zoom().on('zoom', (event) => g.attr('transform', event.transform)));
+    updateGraph();
+
+    svg.call(d3.zoom().extent([[0, 0], [width, height]]).scaleExtent([0.1, 4]).on('zoom', (event) => g.attr('transform', event.transform)));
     
-    simulation.on('tick', () => {
-        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-        node.attr('transform', d => `translate(${d.x},${d.y})`);
-    });
-    
-    currentGraph = { center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)') };
+    currentGraph = { 
+        center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)'),
+        focus: (id) => {
+            const d = characters.find(c => c.id == id);
+            if(d) focusOnNode(d);
+        }
+    };
 }
 
 // 侧边栏详情
@@ -248,112 +264,58 @@ function showCharacterDetail(character) {
             <div class="character-description"><h4>人物描述</h4><p>${character.description || '暂无描述'}</p></div>
             ${relHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relHtml}</div></div>` : ''}
         </div>`;
-    
-    // 聚焦人物的辅助函数
-    function focusOnCharacter(d) {
-        showCharacterDetail(d);
-        const scale = 2;
-        const x = width / 2 - d.x * scale;
-        const y = height / 2 - d.y * scale;
-        g.transition().duration(750).attr('transform', `translate(${x},${y}) scale(${scale})`);
-    }
-
-    currentGraph = { 
-        center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)'),
-        focus: (id) => {
-            const d = characters.find(c => c.id == id);
-            if(d) focusOnCharacter(d);
-        }
-    };
-}
-
-// 侧边栏详情
-function showCharacterDetail(character) {
-    const detailPanel = document.getElementById('character-detail');
-    if (!detailPanel) return;
-    const related = relationships.filter(r => (r.source.id || r.source) === character.id || (r.target.id || r.target) === character.id);
-    const relatedHtml = related.map(rel => {
-        const otherId = (rel.source.id || rel.source) === character.id ? (rel.target.id || rel.target) : (rel.source.id || rel.source);
-        const otherChar = characters.find(c => c.id === otherId);
-        return otherChar ? `<div class="relationship-item"><span class="relation-name">${otherChar.name}</span><span class="relation-type ${rel.type}">${rel.label}</span></div>` : '';
-    }).join('');
-    
-    detailPanel.innerHTML = `
-        <div class="character-detail">
-            <div class="character-header">
-                <h3>${character.name}</h3>
-                <span class="character-badge" style="background:#5c0000; margin-right:5px;">${character.group || '未入册'}</span>
-                <span class="character-badge">${getTypeLabel(character.type)}</span>
-            </div>
-            <div class="character-info">
-                <div class="info-row"><strong>身份：</strong><span>${character.identity || '未指定'}</span></div>
-                <div class="info-row"><strong>家族：</strong><span>${character.family || '未指定'}</span></div>
-                <div class="info-row"><strong>籍册：</strong><span>${character.group || '其他'}</span></div>
-            </div>
-            <div class="character-description">
-                <h4>人物描述</h4>
-                <p>${character.description || '暂无详细描述'}</p>
-            </div>
-            ${relatedHtml ? `<div class="character-relationships"><h4>人物关系</h4><div class="relationships-list">${relatedHtml}</div></div>` : ''}
-        </div>
-    `;
 }
 
 // --- 时间轴逻辑 ---
 function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
-    try {
-        const timelineData = timeline.map(item => ({
-            id: item.id, content: item.event,
-            start: `${String(item.year).padStart(4, '0')}-01-01`,
-            end: `${String(item.year).padStart(4, '0')}-12-31`,
-            type: 'range', className: item.type || 'default'
-        }));
-        const options = {
-            width: '100%', height: '100%', min: '0001-01-01', max: '0020-12-31', 
-            start: '0001-01-01', end: '0015-12-31', zoomMin: 1000 * 60 * 60 * 24 * 365,
-            moveable: true, zoomable: true, orientation: { axis: 'both', item: 'top' },
-            format: { minorLabels: { year: 'YYYY年' } }
-        };
-        const timelineInstance = new vis.Timeline(container, timelineData, options);
-        document.getElementById('zoom-in')?.addEventListener('click', () => timelineInstance.zoomIn(0.5));
-        document.getElementById('zoom-out')?.addEventListener('click', () => timelineInstance.zoomOut(0.5));
-        document.getElementById('fit-timeline')?.addEventListener('click', () => timelineInstance.fit());
-        timelineInstance.on('click', (props) => {
-            if (props.item) {
-                const item = timeline.find(d => d.id == props.item);
-                if (item) showEventModal({title: item.event, chapter: item.chapter, year: item.year, description: item.description});
-            }
-        });
-    } catch (err) { console.error(err); }
+    const timelineData = timeline.map(item => ({
+        id: item.id, content: item.event,
+        start: `${String(item.year).padStart(4, '0')}-01-01`,
+        end: `${String(item.year).padStart(4, '0')}-12-31`,
+        type: 'range', className: item.type || 'default'
+    }));
+    const options = {
+        width: '100%', height: '100%', min: '0001-01-01', max: '0020-12-31', 
+        start: '0001-01-01', end: '0015-12-31', zoomMin: 1000 * 60 * 60 * 24 * 365,
+        moveable: true, zoomable: true, orientation: { axis: 'both', item: 'top' },
+        format: { minorLabels: { year: 'YYYY年' } }
+    };
+    const timelineInstance = new vis.Timeline(container, timelineData, options);
+    document.getElementById('zoom-in')?.addEventListener('click', () => timelineInstance.zoomIn(0.5));
+    document.getElementById('zoom-out')?.addEventListener('click', () => timelineInstance.zoomOut(0.5));
+    document.getElementById('fit-timeline')?.addEventListener('click', () => timelineInstance.fit());
+    timelineInstance.on('click', (props) => {
+        if (props.item) {
+            const item = timeline.find(d => d.id == props.item);
+            if (item) showEventModal({title: item.event, chapter: item.chapter, year: item.year, description: item.description});
+        }
+    });
 }
 
-// --- 重要事件逻辑 ---
+// --- 重要事件逻辑 (含联动搜索) ---
 function initEvents() {
     const container = document.getElementById('events-container');
     const searchInput = document.getElementById('event-search');
     const categorySelect = document.getElementById('event-category');
     if(!container) return;
 
-    function renderEvents(filteredEvents = events) {
-        container.innerHTML = filteredEvents.map(e => `
+    function renderEvents(filtered = events) {
+        container.innerHTML = filtered.map(e => `
             <div class="event-card" data-id="${e.id}">
                 <div class="event-category">${getEventCategoryLabel(e.category)}</div>
                 <h3>${e.title}</h3>
-                <div class="event-time"><i class="fas fa-clock"></i><span>第${e.year}年 · ${e.chapter}</span></div>
+                <div class="event-time"><i class="fas fa-clock"></i><span>第${e.year}年 · ${e.season || ''} · ${e.chapter}</span></div>
                 <p>${e.description ? e.description.substring(0, 100) : ''}...</p>
-            </div>
-        `).join('');
-        container.querySelectorAll('.event-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const e = events.find(item => item.id == card.getAttribute('data-id'));
-                if(e) showEventModal(e);
-            });
-        });
+            </div>`).join('');
+        container.querySelectorAll('.event-card').forEach(card => card.addEventListener('click', () => {
+            const e = events.find(item => item.id == card.getAttribute('data-id'));
+            if(e) showEventModal(e);
+        }));
     }
 
-    const filterFunc = () => {
+    const triggerFilter = () => {
         const query = (searchInput?.value || '').toLowerCase();
         const cat = categorySelect?.value || 'all';
         const filtered = events.filter(e => 
@@ -363,138 +325,70 @@ function initEvents() {
         renderEvents(filtered);
     };
 
-    searchInput?.addEventListener('input', filterFunc);
-    categorySelect?.addEventListener('change', filterFunc);
+    searchInput?.addEventListener('input', triggerFilter);
+    categorySelect?.addEventListener('change', triggerFilter);
     renderEvents();
 }
 
-// --- 全局搜索逻辑 (支持精准跳转) ---
+// --- 全局搜索逻辑 (含跳转) ---
 function initSearch() {
-    const searchInput = document.getElementById('global-search');
-    const searchBtn = document.getElementById('search-btn');
-    if(!searchInput || !searchBtn) return;
+    const input = document.getElementById('global-search');
+    const btn = document.getElementById('search-btn');
+    if(!input || !btn) return;
     
-    function performSearch() {
-        const query = searchInput.value.trim().toLowerCase();
-        if (!query) return;
-        
-        // 汇总搜索库，标记 searchType 用于跳转判断
-        const allData = [
-            ...characters.map(c => ({...c, searchType: 'character'})),
-            ...events.map(e => ({...e, searchType: 'event'})),
-            ...timeline.map(t => ({...t, searchType: 'timeline'})),
-            ...indexDataCache.items.map(i => ({...i, searchType: 'item'})),
-            ...indexDataCache.poems.map(p => ({...p, searchType: 'poem'})),
-            ...indexDataCache.festivals.map(f => ({...f, searchType: 'festival'})),
-            ...indexDataCache.proverbs.map(v => ({...v, searchType: 'proverb'}))
+    function perform() {
+        const q = input.value.trim().toLowerCase();
+        if (!q) return;
+        const all = [
+            ...characters.map(c => ({...c, sType: 'character'})),
+            ...events.map(e => ({...e, sType: 'event'})),
+            ...timeline.map(t => ({...t, sType: 'timeline'})),
+            ...indexDataCache.items.map(i => ({...i, sType: 'item'})),
+            ...indexDataCache.poems.map(p => ({...p, sType: 'poem'}))
         ];
+        const res = all.filter(item => (item.name || item.title || item.phrase || item.event || '').toLowerCase().includes(q));
         
-        const results = allData.filter(item => {
-            const title = (item.name || item.title || item.event || item.phrase || '').toLowerCase();
-            const desc = (item.description || item.content || '').toLowerCase();
-            return title.includes(query) || desc.includes(query);
-        });
-        
-        showSearchResults(results, query);
-    }
-    
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
-}
-
-function showSearchResults(results, query) {
-    const modal = document.getElementById('detail-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    if(!modal) return;
-    
-    modalTitle.textContent = `搜索: "${query}" (${results.length}个结果)`;
-    
-    if (results.length === 0) {
-        modalBody.innerHTML = '<p>没有找到相关结果。</p>';
-    } else {
-        modalBody.innerHTML = `<div class="search-results">${results.slice(0, 20).map(item => `
-            <div class="search-result-item" data-id="${item.id}" data-type="${item.searchType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
-                <h4>${item.name || item.title || item.event || item.phrase || '未命名'}</h4>
-                <p><small>类别: ${getTypeLabel(item.searchType)}</small></p>
+        const modal = document.getElementById('detail-modal');
+        document.getElementById('modal-title').textContent = `搜索: "${q}" (${res.length})`;
+        document.getElementById('modal-body').innerHTML = `<div class="search-results">${res.slice(0,15).map(i => `
+            <div class="search-result-item" data-id="${i.id}" data-type="${i.sType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
+                <h4>${i.name || i.title || i.phrase || i.event}</h4><p><small>类别: ${getTypeLabel(i.sType)}</small></p>
             </div>`).join('')}</div>`;
         
-        modalBody.querySelectorAll('.search-result-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const id = item.getAttribute('data-id');
-                const type = item.getAttribute('data-type');
-                
-                // 1. 关闭搜索弹窗
-                modal.classList.remove('active');
-
-                // 2. 执行跳转逻辑
-                executeJump(id, type);
-            });
-        });
+        modal.querySelectorAll('.search-result-item').forEach(el => el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id'), type = el.getAttribute('data-type');
+            modal.classList.remove('active');
+            
+            // 执行跳转定位
+            if (type === 'character') {
+                showSection('characters');
+                setTimeout(() => currentGraph.focus(id), 300);
+            } else if (type === 'event') {
+                showSection('events');
+                const e = events.find(ev => ev.id == id);
+                if(e) showEventModal(e);
+            } else {
+                const item = (indexDataCache[type+'s'] || indexDataCache.items || []).find(d => d.id == id);
+                if(item) showIndexItemDetail(id, type === 'poem' ? 'poems' : 'items');
+            }
+        }));
+        modal.classList.add('active');
     }
-    modal.classList.add('active');
-}
-
-// 核心跳转执行函数
-function executeJump(id, type) {
-    let sectionId = '';
-    let tabId = '';
-
-    // 映射板块与索引标签
-    switch(type) {
-        case 'character': sectionId = 'characters'; break;
-        case 'event': sectionId = 'events'; break;
-        case 'timeline': sectionId = 'timeline'; break;
-        case 'item': sectionId = 'index'; tabId = 'items'; break;
-        case 'poem': sectionId = 'index'; tabId = 'poems'; break;
-        case 'festival': sectionId = 'index'; tabId = 'festivals'; break;
-        case 'proverb': sectionId = 'index'; tabId = 'proverbs'; break;
-    }
-
-    if (!sectionId) return;
-
-    // 1. 同步导航栏激活状态
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(l => {
-        l.classList.toggle('active', l.getAttribute('href') === `#${sectionId}`);
-    });
-
-    // 2. 切换板块
-    showSection(sectionId);
-
-    // 3. 进入板块后的具体定位
-    setTimeout(() => {
-        if (type === 'character') {
-            if (currentGraph) currentGraph.focus(id);
-        } else if (type === 'event') {
-            const e = events.find(ev => ev.id == id);
-            if (e) showEventModal(e);
-        } else if (type === 'timeline') {
-            const t = timeline.find(tl => tl.id == id);
-            if (t) showEventModal({title: t.event, description: t.description, year: t.year});
-        } else if (sectionId === 'index' && tabId) {
-            // 点击对应的标签按钮
-            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-            if (tabBtn) tabBtn.click();
-            // 延迟一点显示具体条目详情
-            setTimeout(() => showIndexItemDetail(id, tabId), 100);
-        }
-    }, 300);
+    btn.addEventListener('click', perform);
+    input.addEventListener('keypress', (e) => e.key === 'Enter' && perform());
 }
 
 // --- 索引模块 ---
 function initIndex() {
     const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            tabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            document.getElementById(`${tabId}-tab`).classList.add('active');
-            loadIndexData(tabId);
-        });
-    });
+    tabBtns.forEach(btn => btn.addEventListener('click', () => {
+        const tid = btn.getAttribute('data-tab');
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.getElementById(`${tid}-tab`).classList.add('active');
+        loadIndexData(tid);
+    }));
     loadIndexData('persons');
 }
 
@@ -502,40 +396,28 @@ function loadIndexData(type) {
     const grid = document.querySelector(`#${type}-tab .index-grid`);
     if(!grid) return;
     const data = indexDataCache[type] || [];
-    
     grid.innerHTML = data.map(item => {
         let title = item.name || item.title || item.phrase;
-        let sub = item.identity || item.author || item.category || item.time || "";
-        let groupTag = (type === 'persons' && item.group) ? `<small style="color:#8b0000; display:block;">[${item.group}]</small>` : "";
-        return `
-            <div class="index-item" onclick="showIndexItemDetail('${item.id}', '${type}')">
-                <h4>${title}</h4>
-                ${groupTag}
-                <p>${sub}</p>
-            </div>
-        `;
+        let gTag = (type === 'persons' && item.group) ? `<small style="color:#8b0000;display:block;">[${item.group}]</small>` : "";
+        let labels = (type === 'persons') ? `<p><strong>身份:</strong> ${item.identity}</p><p><strong>家族:</strong> ${item.family}</p>` :
+                     (type === 'items') ? `<p><strong>类别:</strong> ${item.category}</p><p><strong>所有者:</strong> ${item.owner}</p>` :
+                     (type === 'festivals') ? `<p><strong>时间:</strong> ${item.time}</p><p><strong>章节:</strong> ${item.chapter}</p>` :
+                     (type === 'poems') ? `<p><strong>作者:</strong> ${item.author}</p><p><strong>章节:</strong> ${item.chapter}</p>` :
+                     `<p><strong>出处:</strong> ${item.source || ''}</p>`;
+        return `<div class="index-item" onclick="showIndexItemDetail('${item.id}', '${type}')"><h4>${title}</h4>${gTag}${labels}</div>`;
     }).join('');
 }
 
 window.showIndexItemDetail = function(itemId, itemType) {
     const modal = document.getElementById('detail-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
     const list = indexDataCache[itemType] || [];
     const item = list.find(d => d.id == itemId);
     if(!item) return;
-
-    modalTitle.textContent = item.name || item.title || item.phrase || "详情";
-    let html = "";
-    if (itemType === 'persons') {
-        html = `<p><strong>籍册：</strong><span style="color:#8b0000;">${item.group || '未入册'}</span></p><p><strong>身份：</strong>${item.identity}</p><p><strong>家族：</strong>${item.family}</p><hr><p>${item.description}</p>`;
-    } else if (itemType === 'poems') {
-        html = `<p><strong>作者：</strong>${item.author}</p><div style="background:#fdfcf8; padding:15px; border:1px solid #ddd; white-space:pre-wrap; text-align:center; font-family:serif; line-height:2;">${item.content}</div>`;
-    } else {
-        html = `<p>${item.description || item.meaning || '暂无详细内容'}</p>`;
-    }
-    
-    modalBody.innerHTML = html;
+    document.getElementById('modal-title').textContent = item.name || item.title || item.phrase || item.event;
+    let html = (itemType === 'persons') ? `<p><strong>籍册：</strong>${item.group || '未入册'}</p><p><strong>身份：</strong>${item.identity}</p><hr><p>${item.description}</p>` :
+               (itemType === 'poems') ? `<div style="white-space:pre-wrap;text-align:center;font-family:serif;line-height:2;">${item.content}</div>` : 
+               `<p>${item.description || item.meaning || item.content || ''}</p>`;
+    document.getElementById('modal-body').innerHTML = html;
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 };
@@ -544,18 +426,14 @@ window.showIndexItemDetail = function(itemId, itemType) {
 function showEventModal(ev) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('modal-title').textContent = ev.title || ev.event || "详情";
-    document.getElementById('modal-body').innerHTML = `
-        <p><strong>时间：</strong>第${ev.year}年 · ${ev.season || ''} · ${ev.chapter || ''}</p>
-        <hr style="margin:10px 0; border:none; border-top:1px solid #eee;">
-        <p style="line-height:1.6;">${ev.description || ''}</p>
-        ${ev.characters ? `<p style="margin-top:10px;"><small>涉及人物：${ev.characters.join('、')}</small></p>` : ''}
-    `;
+    document.getElementById('modal-body').innerHTML = `<p><strong>时间：</strong>第${ev.year}年 · ${ev.chapter || ''}</p><p>${ev.description || ''}</p>`;
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
 
-function getEventCategoryLabel(c) { return {'family':'家族兴衰','love':'情感主线','fate':'命运转折','social':'社会事件'}[c] || '其他'; }
-function getTypeLabel(t) { return {character:'人物',event:'事件',timeline:'时间轴',poem:'诗词',item:'器物',festival:'节日',proverb:'俗语',main:'主要人物',major:'重要人物'}[t] || t; }
+function getFamilyName(k) { return {jia:'贾',wang:'王',shi:'史',xue:'薛'}[k] || ''; }
+function getEventCategoryLabel(c) { return {family:'家族兴衰',love:'情感主线',fate:'命运转折',social:'社会事件'}[c] || '其他'; }
+function getTypeLabel(t) { return {main:'主要人物',major:'重要人物',minor:'次要人物',character:'人物',event:'事件',poem:'诗词',item:'器物'}[t] || t; }
 function getNodeColor(t) { return {main:'#8b0000',major:'#d4af37',minor:'#2e8b57'}[t] || '#6c757d'; }
 function getNodeRadius(t) { return {main:25,major:20,minor:15}[t] || 10; }
-function getLinkColor(t) { return {blood:'#dc3545',marriage:'#28a745','master-servant':'#fd7e14',emotional:'#17a2b8',family:'#6f42c1'}[t] || '#999'; }
+function getLinkColor(t) { return {blood:'#dc3545',marriage:'#28a745',master_servant:'#fd7e14',emotional:'#17a2b8',family:'#6f42c1'}[t] || '#999'; }
