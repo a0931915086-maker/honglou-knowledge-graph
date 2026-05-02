@@ -1,211 +1,70 @@
 // 全局变量
-let characters = [];
+let characters =[];
 let relationships = [];
 let events = [];
-let timeline = [];
-let items = [];
-let festivals = [];
-let poems = [];
-let proverbs = [];
+let timeline =[];
 let currentGraph = null;
 let currentSelectedNode = null;
 
-// 基础路径函数
-function getBasePath() {
-    const currentPath = window.location.pathname;
-    
-    // 如果是GitHub Pages
-    if (window.location.hostname.includes('github.io')) {
-        // 从路径中提取仓库名称
-        const pathParts = currentPath.split('/').filter(part => part);
-        
-        // 如果是用户站点（username.github.io）
-        if (pathParts.length === 0 || pathParts[0].includes('.')) {
-            return window.location.origin;
-        }
-        // 如果是项目站点（username.github.io/repo-name）
-        else {
-            return window.location.origin + '/' + pathParts[0];
-        }
-    } else {
-        // 本地开发
-        return window.location.origin;
-    }
-}
-
-// 数据加载函数
-async function fetchData(filename) {
-    const basePath = getBasePath();
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    // 尝试不同的路径
-    const paths = [
-        // GitHub Pages路径
-        `${basePath}/data/${filename}`,
-        // 相对路径
-        `data/${filename}`,
-        // 根路径
-        `/${filename}`,
-        // 相对路径2
-        `./data/${filename}`
-    ];
-    
-    // 如果是本地开发，优先尝试本地路径
-    if (isLocal) {
-        paths.unshift(`data/${filename}`);
-    }
-    
-    for (let i = 0; i < paths.length; i++) {
-        try {
-            console.log(`尝试路径 ${i+1}: ${paths[i]}`);
-            const response = await fetch(paths[i]);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log(`成功从 ${paths[i]} 加载 ${filename}`);
-                return data;
-            }
-        } catch (error) {
-            console.log(`路径 ${paths[i]} 失败:`, error.message);
-            continue;
-        }
-    }
-    
-    throw new Error(`无法加载数据文件: ${filename}`);
-}
-
-// 调试信息
-function logDebugInfo() {
-    console.log('=== 调试信息 ===');
-    console.log('当前URL:', window.location.href);
-    console.log('主机名:', window.location.hostname);
-    console.log('路径:', window.location.pathname);
-    console.log('基础路径:', getBasePath());
-    console.log('字符数量:', characters.length);
-    console.log('关系数量:', relationships.length);
-    console.log('=== 结束调试 ===');
-}
-
 // 初始化
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('《红楼梦》知识图谱网站正在初始化...');
-    
-    // 显示加载状态
-    showLoadingState();
-    
-    try {
-        // 加载数据
-        await loadAllData();
+document.addEventListener('DOMContentLoaded', function() {
+    // 加载数据
+    Promise.all([
+        fetchData('data/characters.json'),
+        fetchData('data/relationships.json'),
+        fetchData('data/events.json'),
+        fetchData('data/timeline.json'),
+        fetchData('data/items.json'),
+        fetchData('data/festivals.json'),
+        fetchData('data/poems.json'),
+        fetchData('data/proverbs.json')
+    ]).then(([chars, rels, evts, tml, items, festivals, poems, proverbs]) => {
+        characters = chars;
+        relationships = rels;
+        events = evts;
+        timeline = tml;
         
         // 更新统计数据
         updateStatistics();
         
-        // 初始化各个页面
+        // 初始化各个页面 (哪怕其中一个失败，也不要影响其他的)
         initNavigation();
         initHomePage();
         initCharacterGraph();
-        initTimeline();
-        initEvents();
-        initIndex();
-        initSearch();
         
-        // 隐藏加载状态
-        hideLoadingState();
+        // 增加容错隔离：如果时间轴初始化报错，不会阻断后续代码
+        try { initTimeline(); } catch(e) { console.error('时间轴初始化跳过:', e); }
+        try { initEvents(); } catch(e) { console.error('事件初始化跳过:', e); }
+        try { initIndex(); } catch(e) { console.error('索引初始化跳过:', e); }
+        try { initSearch(); } catch(e) { console.error('搜索初始化跳过:', e); }
         
-        // 输出调试信息
-        logDebugInfo();
-        
-    } catch (error) {
-        console.error('初始化失败:', error);
-        showDataLoadError(error.message);
-    }
+        // 显示首页
+        showSection('home');
+    }).catch(error => {
+        console.error('加载核心数据失败:', error);
+        alert('加载数据失败，请按F12查看控制台报错详情');
+    });
 });
 
-// 显示加载状态
-function showLoadingState() {
-    const homeSection = document.getElementById('home');
-    if (homeSection) {
-        const statsContainer = homeSection.querySelector('.stats-container');
-        if (statsContainer) {
-            statsContainer.innerHTML = `
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>正在加载数据...</p>
-                </div>
-            `;
-        }
-    }
-}
-
-// 隐藏加载状态
-function hideLoadingState() {
-    const loadingState = document.querySelector('.loading-state');
-    if (loadingState) {
-        loadingState.remove();
-    }
-}
-
-// 加载所有数据
-async function loadAllData() {
+// 数据加载 (带容错机制)
+async function fetchData(url) {
     try {
-        // 并行加载所有必要数据
-        const dataPromises = [
-            fetchData('characters.json').then(data => characters = data),
-            fetchData('relationships.json').then(data => relationships = data),
-            fetchData('events.json').then(data => events = data)
-        ];
-        
-        // 可选数据
-        const optionalDataPromises = [
-            fetchData('timeline.json').then(data => timeline = data).catch(() => timeline = []),
-            fetchData('items.json').then(data => items = data).catch(() => items = []),
-            fetchData('festivals.json').then(data => festivals = data).catch(() => festivals = []),
-            fetchData('poems.json').then(data => poems = data).catch(() => poems = []),
-            fetchData('proverbs.json').then(data => proverbs = data).catch(() => proverbs = [])
-        ];
-        
-        await Promise.all(dataPromises);
-        await Promise.allSettled(optionalDataPromises);
-        
-        console.log('数据加载完成');
-        
-    } catch (error) {
-        console.error('数据加载失败:', error);
-        throw error;
-    }
-}
-
-// 显示数据加载错误提示
-function showDataLoadError(errorMessage) {
-    const homeSection = document.getElementById('home');
-    if (homeSection) {
-        const quickLinks = homeSection.querySelector('.quick-links');
-        if (quickLinks) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-notice';
-            errorDiv.innerHTML = `
-                <div class="error-content">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div>
-                        <h4>数据加载失败</h4>
-                        <p>${errorMessage || '无法加载数据文件'}</p>
-                        <p><small>请确保data目录下有正确的JSON文件</small></p>
-                    </div>
-                </div>
-            `;
-            
-            quickLinks.parentNode.insertBefore(errorDiv, quickLinks);
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`⚠️ 提示: 找不到文件 ${url} (状态码: ${response.status})。将使用空数据继续。`);
+            return[]; 
         }
+        return await response.json();
+    } catch (error) {
+        console.warn(`⚠️ 提示: 网络请求异常 ${url}`, error);
+        return[]; 
     }
 }
 
 // 更新统计数据
 function updateStatistics() {
-    const charCount = document.getElementById('character-count');
-    const relCount = document.getElementById('relationship-count');
-    
-    if (charCount) charCount.textContent = characters.length;
-    if (relCount) relCount.textContent = relationships.length;
+    document.getElementById('character-count').textContent = Array.isArray(characters) ? characters.length : 0;
+    document.getElementById('relationship-count').textContent = Array.isArray(relationships) ? relationships.length : 0;
 }
 
 // 导航初始化
@@ -216,11 +75,9 @@ function initNavigation() {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
             
-            // 更新激活状态
             navLinks.forEach(l => l.classList.remove('active'));
             this.classList.add('active');
             
-            // 显示对应部分
             showSection(target);
         });
     });
@@ -228,36 +85,34 @@ function initNavigation() {
 
 // 显示对应部分
 function showSection(sectionId) {
-    // 隐藏所有部分
     document.querySelectorAll('.page-section').forEach(section => {
         section.classList.remove('active');
     });
     
-    // 显示目标部分
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
-        
-        // 滚动到顶部
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    if (sectionId === 'characters' && currentGraph) {
+        setTimeout(() => {
+            currentGraph.centerGraph();
+        }, 100);
     }
 }
 
 // 首页初始化
 function initHomePage() {
-    // 快速链接
     const quickLinks = document.querySelectorAll('.link-card');
     quickLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const target = this.getAttribute('href').substring(1);
             
-            // 更新导航状态
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             const targetLink = document.querySelector(`.nav-link[href="#${target}"]`);
-            if (targetLink) targetLink.classList.add('active');
+            if(targetLink) targetLink.classList.add('active');
             
-            // 显示对应部分
             showSection(target);
         });
     });
@@ -584,63 +439,438 @@ function getTypeLabel(type) {
     return labels[type] || '未知';
 }
 
-// 时间轴初始化
+// 时间轴初始化 (✨ 已完美修复 NaN 报错问题)
 function initTimeline() {
     const container = document.getElementById('timeline-container');
-    if (!container || timeline.length === 0) return;
+    if(!container || timeline.length === 0) return;
     
-    container.innerHTML = '<p>时间轴功能暂未实现</p>';
+    try {
+        // 创建时间轴数据
+        const timelineData = timeline.map(item => {
+            // ⭐ 关键修复: 将 1, 15 这样的年份强制补齐为 4 位数的标准格式 "0001", "0015"
+            // 否则 Date.parse 解析会失败并返回 NaN
+            const yearNum = parseInt(item.year) || 1;
+            const yearStr = String(yearNum).padStart(4, '0');
+
+            return {
+                id: item.id,
+                content: item.event,
+                start: `${yearStr}-01-01`,  // 变成了标准的 '0001-01-01'
+                end: `${yearStr}-12-31`,    // 变成了标准的 '0001-12-31'
+                type: 'range',
+                className: item.type || 'default',
+                title: item.chapter || '',
+                description: item.description || ''
+            };
+        });
+        
+        // 创建时间轴选项
+        const options = {
+            width: '100%',
+            height: '100%',
+            // ⭐ 关键修复: 这里也必须使用标准的 4 位数年份
+            min: '0001-01-01',
+            max: '0020-12-31', 
+            start: '0001-01-01',
+            end: '0015-12-31',
+            zoomMin: 1000 * 60 * 60 * 24 * 365, 
+            zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, 
+            moveable: true,
+            zoomable: true,
+            orientation: {
+                axis: 'both',
+                item: 'top'
+            },
+            tooltip: {
+                followMouse: true,
+                overflowMethod: 'cap'
+            },
+            format: {
+                minorLabels: {
+                    year: 'YYYY年'
+                }
+            }
+        };
+        
+        if (typeof vis !== 'undefined') {
+            const timelineInstance = new vis.Timeline(container, timelineData, options);
+            
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const fitBtn = document.getElementById('fit-timeline');
+
+            if(zoomInBtn) zoomInBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 0.7;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 1.3;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(fitBtn) fitBtn.addEventListener('click', () => {
+                timelineInstance.fit();
+            });
+            
+            timelineInstance.on('click', function(properties) {
+                if (properties.item) {
+                    const item = timelineData.find(d => d.id == properties.item);
+                    if (item) showEventModal(item);
+                }
+            });
+        }
+    } catch (err) {
+        console.error("时间轴渲染出错:", err);
+        container.innerHTML = `<p style="color:red;text-align:center;padding:20px;">时间轴加载失败: ${err.message}</p>`;
+    }
 }
 
 // 事件页面初始化
 function initEvents() {
     const container = document.getElementById('events-container');
-    if (!container || events.length === 0) return;
+    if(!container) return;
     
-    container.innerHTML = events.map(event => `
-        <div class="event-card">
-            <h3>${event.title}</h3>
-            <p>${event.description || '暂无描述'}</p>
-        </div>
-    `).join('');
+    function renderEvents(filteredEvents = events) {
+        if(filteredEvents.length === 0) {
+            container.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">暂无相关事件数据</p>';
+            return;
+        }
+
+        container.innerHTML = filteredEvents.map(event => `
+            <div class="event-card" data-id="${event.id}">
+                <div class="event-category">${getEventCategoryLabel(event.category)}</div>
+                <h3>${event.title}</h3>
+                <div class="event-time">
+                    <i class="fas fa-clock"></i>
+                    <span>第${event.year}年 · ${event.season} · ${event.chapter}</span>
+                </div>
+                <p>${event.description ? event.description.substring(0, 100) : ''}...</p>
+                <div class="event-characters">
+                    ${event.characters && event.characters.length > 0 ? `
+                    <small>涉及人物: ${event.characters.slice(0, 3).join('、')}${event.characters.length > 3 ? '等' : ''}</small>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.event-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const eventId = card.getAttribute('data-id');
+                const event = events.find(e => e.id == eventId);
+                if (event) showEventModal(event);
+            });
+        });
+    }
+    
+    renderEvents();
+    
+    const searchInput = document.getElementById('event-search');
+    const categorySelect = document.getElementById('event-category');
+
+    if(searchInput) searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const category = categorySelect ? categorySelect.value : 'all';
+        
+        const filtered = events.filter(event => {
+            const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm) ||
+                                (event.description || '').toLowerCase().includes(searchTerm) ||
+                                (event.characters && event.characters.some(char => 
+                                    char.toLowerCase().includes(searchTerm)
+                                ));
+            const matchesCategory = category === 'all' || event.category === category;
+            return matchesSearch && matchesCategory;
+        });
+        renderEvents(filtered);
+    });
+    
+    if(categorySelect) categorySelect.addEventListener('change', function() {
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        const category = this.value;
+        
+        const filtered = events.filter(event => {
+            const matchesSearch = (event.title || '').toLowerCase().includes(searchTerm) ||
+                                (event.description || '').toLowerCase().includes(searchTerm) ||
+                                (event.characters && event.characters.some(char => 
+                                    char.toLowerCase().includes(searchTerm)
+                                ));
+            const matchesCategory = category === 'all' || event.category === category;
+            return matchesSearch && matchesCategory;
+        });
+        renderEvents(filtered);
+    });
 }
 
 // 索引初始化
 function initIndex() {
     const tabBtns = document.querySelectorAll('.tab-btn');
+    if(tabBtns.length === 0) return;
+    
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
             
-            // 更新按钮状态
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // 显示对应标签页
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('active');
             });
-            document.getElementById(`${tabId}-tab`).classList.add('active');
+            const activeTab = document.getElementById(`${tabId}-tab`);
+            if(activeTab) activeTab.classList.add('active');
+            
+            loadIndexData(tabId);
         });
     });
+    
+    loadIndexData('persons');
+}
+
+// 加载索引数据
+async function loadIndexData(type) {
+    const tabElement = document.querySelector(`#${type}-tab .index-grid`);
+    if(!tabElement) return;
+
+    try {
+        let data =[];
+        let template = '';
+        
+        switch(type) {
+            case 'persons':
+                data = characters;
+                template = (item) => `
+                    <div class="index-item" data-id="${item.id}" data-type="character">
+                        <h4>${item.name}</h4>
+                        <p><strong>身份:</strong> ${item.identity || '未指定'}</p>
+                        <p><strong>家族:</strong> ${item.family || '未指定'}</p>
+                    </div>
+                `;
+                break;
+                
+            case 'items':
+                data = await fetchData('data/items.json');
+                template = (item) => `
+                    <div class="index-item" data-id="${item.id}" data-type="item">
+                        <h4>${item.name}</h4>
+                        <p><strong>类别:</strong> ${item.category || '未分类'}</p>
+                        <p><strong>所有者:</strong> ${item.owner || '未指定'}</p>
+                    </div>
+                `;
+                break;
+                
+            case 'festivals':
+                data = await fetchData('data/festivals.json');
+                template = (item) => `
+                    <div class="index-item" data-id="${item.id}" data-type="festival">
+                        <h4>${item.name}</h4>
+                        <p><strong>时间:</strong> ${item.time || '未指定'}</p>
+                        <p><strong>章节:</strong> ${item.chapter || '未指定'}</p>
+                    </div>
+                `;
+                break;
+                
+            case 'poems':
+                data = await fetchData('data/poems.json');
+                template = (item) => `
+                    <div class="index-item" data-id="${item.id}" data-type="poem">
+                        <h4>${item.title}</h4>
+                        <p><strong>作者:</strong> ${item.author || '未指定'}</p>
+                        <p><strong>章节:</strong> ${item.chapter || '未指定'}</p>
+                    </div>
+                `;
+                break;
+                
+            case 'proverbs':
+                data = await fetchData('data/proverbs.json');
+                template = (item) => `
+                    <div class="index-item" data-id="${item.id}" data-type="proverb">
+                        <h4>${item.phrase}</h4>
+                        <p><strong>出处:</strong> ${item.source || '未指定'}</p>
+                    </div>
+                `;
+                break;
+        }
+        
+        if (!data || data.length === 0) {
+            tabElement.innerHTML = '<p class="text-center" style="grid-column: 1/-1; color:#999;">该分类暂无数据</p>';
+        } else {
+            tabElement.innerHTML = data.slice(0, 50).map(template).join('');
+            
+            tabElement.querySelectorAll('.index-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const itemId = item.getAttribute('data-id');
+                    const itemType = item.getAttribute('data-type');
+                    showIndexItemDetail(itemId, itemType);
+                });
+            });
+        }
+    } catch (error) {
+        console.error(`加载${type}数据失败:`, error);
+        tabElement.innerHTML = '<p class="error">加载数据失败</p>';
+    }
 }
 
 // 搜索初始化
 function initSearch() {
     const searchInput = document.getElementById('global-search');
     const searchBtn = document.getElementById('search-btn');
+    if(!searchInput || !searchBtn) return;
     
-    if (!searchInput || !searchBtn) return;
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return;
+        
+        const allData = [
+            ...(characters || []).map(c => ({...c, type: 'character'})),
+            ...(events ||[]).map(e => ({...e, type: 'event'})),
+            ...(timeline ||[]).map(t => ({...t, type: 'timeline'}))
+        ];
+        
+        const results = allData.filter(item => {
+            if (item.name && item.name.toLowerCase().includes(query)) return true;
+            if (item.title && item.title.toLowerCase().includes(query)) return true;
+            if (item.description && item.description.toLowerCase().includes(query)) return true;
+            if (item.content && item.content.toLowerCase().includes(query)) return true;
+            if (item.event && item.event.toLowerCase().includes(query)) return true;
+            if (item.characters && item.characters.some(c => c.toLowerCase().includes(query))) return true;
+            return false;
+        });
+        
+        showSearchResults(results, query);
+    }
     
     searchBtn.addEventListener('click', performSearch);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') performSearch();
     });
+}
+
+// 显示搜索结果
+function showSearchResults(results, query) {
+    const modal = document.getElementById('detail-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
     
-    function performSearch() {
-        const query = searchInput.value.trim();
-        if (!query) return;
+    modalTitle.textContent = `搜索: "${query}" (${results.length}个结果)`;
+    
+    if (results.length === 0) {
+        modalBody.innerHTML = '<p>没有找到相关结果。</p>';
+    } else {
+        modalBody.innerHTML = `
+            <div class="search-results">
+                ${results.slice(0, 20).map(item => `
+                    <div class="search-result-item" data-id="${item.id}" data-type="${item.type}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
+                        <h4>${item.name || item.title || item.event || '未命名'}</h4>
+                        <p><small>类型: ${getTypeLabel(item.type)}</small></p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
         
-        alert(`搜索功能暂未实现，搜索词: ${query}`);
+        modalBody.querySelectorAll('.search-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const itemId = item.getAttribute('data-id');
+                const itemType = item.getAttribute('data-type');
+                modal.classList.remove('active');
+                
+                if (itemType === 'character') {
+                    showSection('characters');
+                    setTimeout(() => {
+                        if (currentGraph) {
+                            d3.select('#relationship-graph').selectAll('.node')
+                                .filter(d => d.id == itemId)
+                                .dispatch('click');
+                        }
+                    }, 100);
+                } else if (itemType === 'event') {
+                    const event = events.find(e => e.id == itemId);
+                    if (event) showEventModal(event);
+                }
+            });
+        });
     }
+    modal.classList.add('active');
+}
+
+// 显示事件模态框
+function showEventModal(event) {
+    const modal = document.getElementById('detail-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
+    
+    modalTitle.textContent = event.title || event.event || '事件详情';
+    
+    modalBody.innerHTML = `
+        <div class="event-modal-content">
+            <div class="event-meta" style="display:flex; gap:15px; margin-bottom:15px; color:#666;">
+                <div class="meta-item"><i class="fas fa-calendar"></i> 年份: 第${event.year}年</div>
+                ${event.chapter ? `<div class="meta-item"><i class="fas fa-book-open"></i> 章节: ${event.chapter}</div>` : ''}
+            </div>
+            <div class="event-content">
+                <h4>描述</h4>
+                <p>${event.description || event.content || '暂无描述'}</p>
+                ${event.characters && event.characters.length > 0 ? `
+                <div style="margin-top:15px;">
+                    <h4>涉及人物</h4>
+                    <p>${event.characters.join('、')}</p>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+    
+    const closeBtn = modal.querySelector('.close-modal');
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+        closeBtn.dataset.bound = true;
+    }
+    
+    if (!modal.dataset.bound) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+        modal.dataset.bound = true;
+    }
+}
+
+// 显示索引项详情
+function showIndexItemDetail(itemId, itemType) {
+    const modal = document.getElementById('detail-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
+    
+    modalTitle.textContent = '项目详情';
+    modalBody.innerHTML = `
+        <div class="index-item-detail">
+            <p><strong>类型:</strong> ${getTypeLabel(itemType)}</p>
+            <p><strong>更多详情:</strong> 此处可扩展详细信息</p>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+// 辅助函数
+function getEventCategoryLabel(category) {
+    const labels = {
+        'family': '家族兴衰', 'love': '情感主线', 'fate': '命运转折',
+        'social': '社会事件', 'default': '其他事件'
+    };
+    return labels[category] || category || '未分类';
+}
+
+function getTypeLabel(type) {
+    const labels = {
+        'character': '人物', 'event': '事件', 'timeline': '时间轴',
+        'item': '器物', 'festival': '节日', 'poem': '诗词', 'proverb': '俗语'
+    };
+    return labels[type] || type;
 }
