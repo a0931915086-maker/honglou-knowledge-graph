@@ -12,7 +12,7 @@
   },
   {
     "id": "2",
-    "title": "黛玉进府",
+    "title": "黛玉抛父进京",
     "year": 1,
     "season": "秋季",
     "chapter": "第三回",
@@ -34,7 +34,7 @@
   },
   {
     "id": "4",
-    "title": "宝钗进京",
+    "title": "宝钗进京待选",
     "year": 1,
     "season": "冬季",
     "chapter": "第四回",
@@ -82,7 +82,7 @@
     "year": 2,
     "season": "冬季",
     "chapter": "第十二回",
-    "category": "fate",
+    "category": "social",
     "description": "贾瑞调戏王熙凤，凤姐设局两次捉弄，贾瑞受冻挨打，大病而死。",
     "characters": ["王熙凤", "贾瑞", "贾蓉"],
     "significance": "展现凤姐狠辣，预示贾府子弟堕落。"
@@ -122,7 +122,7 @@
   },
   {
     "id": "12",
-    "title": "芒种节黛玉葬花",
+    "title": "黛玉葬花",
     "year": 3,
     "season": "春季",
     "chapter": "第二十七回",
@@ -159,7 +159,7 @@
     "year": 3,
     "season": "夏季",
     "chapter": "第三十二回",
-    "category": "fate",
+    "category": "social",
     "description": "金钏因与宝玉调笑被王夫人撵走，羞愤投井自尽。",
     "characters": ["金钏", "王夫人", "贾宝玉"],
     "significance": "暴露王夫人冷酷，宝玉内心重创。"
@@ -170,7 +170,7 @@
     "year": 3,
     "season": "夏季",
     "chapter": "第三十三回",
-    "category": "family",
+    "category": "family","love",
     "description": "贾政因宝玉结交戏子、逼死金钏等事，痛打宝玉，贾母王夫人哭求才住手。",
     "characters": ["贾宝玉", "贾政", "王夫人", "贾母"],
     "significance": "父子矛盾激化，贾府内部危机显现。"
@@ -225,7 +225,7 @@
     "year": 4,
     "season": "冬季",
     "chapter": "第四十八回",
-    "category": "family",
+    "category": "social",
     "description": "香菱搬进大观园，拜黛玉为师学作诗，刻苦钻研终得佳句。",
     "characters": ["香菱", "林黛玉", "薛宝钗"],
     "significance": "展现香菱天资与痴迷，大观园文化氛围浓厚。"
@@ -236,7 +236,7 @@
     "year": 4,
     "season": "冬季",
     "chapter": "第五十回",
-    "category": "family",
+    "category": "social",
     "description": "大雪天众人在芦雪庵联诗，湘云、黛玉、宝琴争抢联句，宝玉落第罚折红梅。",
     "characters": ["史湘云", "林黛玉", "薛宝琴", "贾宝玉"],
     "significance": "诗社最热闹场景，群芳才华尽显。"
@@ -291,7 +291,7 @@
     "year": 5,
     "season": "夏季",
     "chapter": "第六十六回",
-    "category": "fate",
+    "category": "social",
     "description": "尤三姐恋柳湘莲，湘莲怀疑她不贞，索回定情剑，三姐当场自刎。",
     "characters": ["尤三姐", "柳湘莲", "贾琏"],
     "significance": "刚烈女子悲剧，揭示封建礼教对女性的压迫。"
@@ -302,7 +302,7 @@
     "year": 5,
     "season": "秋季",
     "chapter": "第六十九回",
-    "category": "fate",
+    "category": "social",
     "description": "尤二姐被王熙凤骗入贾府，备受折磨，胎儿被庸医打掉，绝望吞金自尽。",
     "characters": ["尤二姐", "王熙凤", "贾琏", "秋桐"],
     "significance": "凤姐心狠手辣，贾府内部倾轧惨烈。"
@@ -324,7 +324,7 @@
     "year": 6,
     "season": "秋季",
     "chapter": "第七十四回",
-    "category": "fate",
+    "category": "family",
     "description": "王夫人命凤姐、王善保家的抄检大观园，驱逐晴雯、司棋等人。",
     "characters": ["王夫人", "王熙凤", "晴雯", "探春", "司棋"],
     "significance": "贾府内乱标志，大观园由盛转衰。"
@@ -346,7 +346,7 @@
     "year": 6,
     "season": "冬季",
     "chapter": "第七十九回",
-    "category": "fate",
+    "category": "social",
     "description": "贾赦将迎春许配给孙绍祖，孙绍祖虐待迎春，一年后迎春被折磨死。",
     "characters": ["贾迎春", "孙绍祖", "贾赦"],
     "significance": "贾府女儿悲剧，家族衰败无力庇护。"
@@ -368,7 +368,7 @@
     "year": 8,
     "season": "春季",
     "chapter": "第九十七回",
-    "category": "fate",
+    "category": "fate","love",
     "description": "黛玉得知宝玉将娶宝钗，绝望焚烧诗稿，含恨而死。",
     "characters": ["林黛玉", "紫鹃", "李纨"],
     "significance": "宝黛爱情悲剧高潮，黛玉香消玉殒。"
@@ -412,7 +412,7 @@
     "year": 9,
     "season": "冬季",
     "chapter": "第一百一十回",
-    "category": "fate",
+    "category": "family",
     "description": "贾母年迈病重，临终散财嘱托，葬礼时贾府已无力风光。",
     "characters": ["贾母", "王熙凤", "贾政"],
     "significance": "贾府精神支柱倒塌，加速崩溃。"
