@@ -74,19 +74,19 @@
   {
     "source": "1",
     "target": "14",
-    "type": "emotional",
+    "type": "master-servant",
     "label": "主仆"
   },
   {
     "source": "1",
     "target": "15",
-    "type": "emotional",
+    "type": "master-servant",
     "label": "主仆（亲近）"
   },
   {
     "source": "1",
     "target": "16",
-    "type": "emotional",
+    "type": "master-servant",
     "label": "主仆（亲密）"
   },
   {
