@@ -6,7 +6,7 @@ let timeline = [];
 let currentGraph = null;
 let currentSelectedNode = null;
 
-// 数据缓存，用于存储详情数据
+// 详情数据缓存
 let indexDataCache = {
     persons: [],
     items: [],
@@ -17,7 +17,6 @@ let indexDataCache = {
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 加载数据
     Promise.all([
         fetchData('data/characters.json'),
         fetchData('data/relationships.json'),
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
         events = evts;
         timeline = tml;
         
-        // 填充缓存
         indexDataCache.persons = chars;
         indexDataCache.items = items;
         indexDataCache.festivals = festivals;
@@ -56,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// 数据加载函数
 async function fetchData(url) {
     try {
         const response = await fetch(url);
@@ -67,7 +64,6 @@ async function fetchData(url) {
     }
 }
 
-// 更新统计
 function updateStatistics() {
     document.getElementById('character-count').textContent = Array.isArray(characters) ? characters.length : 0;
     document.getElementById('relationship-count').textContent = Array.isArray(relationships) ? relationships.length : 0;
@@ -109,7 +105,7 @@ function initHomePage() {
     });
 }
 
-// --- 完全复刻：人物关系图谱逻辑 ---
+// --- 人物关系图谱核心 (原汁原味复刻) ---
 function initCharacterGraph() {
     const graphContainer = document.getElementById('relationship-graph');
     if (!graphContainer || characters.length === 0) return;
@@ -178,11 +174,10 @@ function initCharacterGraph() {
     currentGraph = { center: () => g.transition().duration(750).attr('transform', 'translate(0,0) scale(1)') };
 }
 
-// 侧边栏详情显示 (包含 Group 标签)
+// 侧边栏详情
 function showCharacterDetail(character) {
     const detailPanel = document.getElementById('character-detail');
     if (!detailPanel) return;
-    
     const related = relationships.filter(r => (r.source.id || r.source) === character.id || (r.target.id || r.target) === character.id);
     const relatedHtml = related.map(rel => {
         const otherId = (rel.source.id || rel.source) === character.id ? (rel.target.id || rel.target) : (rel.source.id || rel.source);
@@ -211,7 +206,7 @@ function showCharacterDetail(character) {
     `;
 }
 
-// --- 完全复刻：时间轴逻辑 ---
+// --- 时间轴逻辑 ---
 function initTimeline() {
     const container = document.getElementById('timeline-container');
     if(!container || timeline.length === 0) return;
@@ -241,12 +236,19 @@ function initTimeline() {
     } catch (err) { console.error(err); }
 }
 
-// --- 完全复刻：重要事件 ---
+// --- 重要事件逻辑 (复刻筛选功能) ---
 function initEvents() {
     const container = document.getElementById('events-container');
+    const searchInput = document.getElementById('event-search');
+    const categorySelect = document.getElementById('event-category');
     if(!container) return;
-    function render(data = events) {
-        container.innerHTML = data.map(e => `
+
+    function renderEvents(filteredEvents = events) {
+        if(filteredEvents.length === 0) {
+            container.innerHTML = '<p class="text-center" style="grid-column: 1/-1;">暂无匹配事件</p>';
+            return;
+        }
+        container.innerHTML = filteredEvents.map(e => `
             <div class="event-card" data-id="${e.id}">
                 <div class="event-category">${getEventCategoryLabel(e.category)}</div>
                 <h3>${e.title}</h3>
@@ -261,10 +263,97 @@ function initEvents() {
             });
         });
     }
-    render();
+
+    searchInput?.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        const cat = categorySelect.value;
+        const filtered = events.filter(e => 
+            (e.title.toLowerCase().includes(query) || e.description.toLowerCase().includes(query)) &&
+            (cat === 'all' || e.category === cat)
+        );
+        renderEvents(filtered);
+    });
+
+    categorySelect?.addEventListener('change', () => {
+        const query = searchInput.value.toLowerCase();
+        const cat = categorySelect.value;
+        const filtered = events.filter(e => 
+            (e.title.toLowerCase().includes(query) || e.description.toLowerCase().includes(query)) &&
+            (cat === 'all' || e.category === cat)
+        );
+        renderEvents(filtered);
+    });
+
+    renderEvents();
 }
 
-// --- 完全复刻并修正：索引列表 ---
+// --- 全局搜索逻辑 (原汁原味复刻) ---
+function initSearch() {
+    const searchInput = document.getElementById('global-search');
+    const searchBtn = document.getElementById('search-btn');
+    if(!searchInput || !searchBtn) return;
+    
+    function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return;
+        
+        const allData = [
+            ...characters.map(c => ({...c, searchType: 'character'})),
+            ...events.map(e => ({...e, searchType: 'event'})),
+            ...timeline.map(t => ({...t, searchType: 'timeline'})),
+            ...(indexDataCache.poems || []).map(p => ({...p, searchType: 'poem'}))
+        ];
+        
+        const results = allData.filter(item => {
+            const title = (item.name || item.title || item.event || '').toLowerCase();
+            const desc = (item.description || item.content || '').toLowerCase();
+            return title.includes(query) || desc.includes(query);
+        });
+        
+        showSearchResults(results, query);
+    }
+    
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+}
+
+function showSearchResults(results, query) {
+    const modal = document.getElementById('detail-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    if(!modal) return;
+    
+    modalTitle.textContent = `搜索: "${query}" (${results.length}个结果)`;
+    
+    if (results.length === 0) {
+        modalBody.innerHTML = '<p>没有找到相关结果。</p>';
+    } else {
+        modalBody.innerHTML = `<div class="search-results">${results.slice(0, 20).map(item => `
+            <div class="search-result-item" data-id="${item.id}" data-type="${item.searchType}" style="cursor:pointer; padding:10px; border-bottom:1px solid #eee;">
+                <h4>${item.name || item.title || item.event || '未命名'}</h4>
+                <p><small>类别: ${getTypeLabel(item.searchType)}</small></p>
+            </div>`).join('')}</div>`;
+        
+        modalBody.querySelectorAll('.search-result-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const id = item.getAttribute('data-id');
+                const type = item.getAttribute('data-type');
+                modal.classList.remove('active');
+                if (type === 'character') {
+                    showSection('characters');
+                    const char = characters.find(c => c.id == id);
+                    if(char) setTimeout(() => showCharacterDetail(char), 200);
+                } else if (type === 'event' || type === 'timeline') {
+                    const e = events.find(ev => ev.id == id) || timeline.find(tl => tl.id == id);
+                    if(e) showEventModal(e);
+                }
+            });
+        });
+    }
+    modal.classList.add('active');
+}
+
+// --- 索引模块 ---
 function initIndex() {
     const tabBtns = document.querySelectorAll('.tab-btn');
     tabBtns.forEach(btn => {
@@ -280,73 +369,28 @@ function initIndex() {
     loadIndexData('persons');
 }
 
-// 修正：完全按照原模版标签显示（不使用 信息1、信息2）
 function loadIndexData(type) {
     const grid = document.querySelector(`#${type}-tab .index-grid`);
     if(!grid) return;
     const data = indexDataCache[type] || [];
-    
     grid.innerHTML = data.map(item => {
         let title = item.name || item.title || item.phrase;
         let groupTag = (type === 'persons' && item.group) ? `<small style="color:#8b0000; display:block;">[${item.group}]</small>` : "";
-        let labels = "";
-
-        // 根据类型复刻最原始的标签
-        if (type === 'persons') {
-            labels = `<p><strong>身份:</strong> ${item.identity || '未指定'}</p><p><strong>家族:</strong> ${item.family || '未指定'}</p>`;
-        } else if (type === 'items') {
-            labels = `<p><strong>类别:</strong> ${item.category || '未分类'}</p><p><strong>所有者:</strong> ${item.owner || '未指定'}</p>`;
-        } else if (type === 'festivals') {
-            labels = `<p><strong>时间:</strong> ${item.time || '未指定'}</p><p><strong>章节:</strong> ${item.chapter || '未指定'}</p>`;
-        } else if (type === 'poems') {
-            labels = `<p><strong>作者:</strong> ${item.author || '未指定'}</p><p><strong>章节:</strong> ${item.chapter || '未指定'}</p>`;
-        } else if (type === 'proverbs') {
-            labels = `<p><strong>出处:</strong> ${item.source || '未指定'}</p>`;
-        }
-
-        return `
-            <div class="index-item" data-id="${item.id}" data-type="${type}">
-                <h4>${title}</h4>
-                ${groupTag}
-                ${labels}
-            </div>
-        `;
+        let labels = (type === 'persons') ? `<p><strong>身份:</strong> ${item.identity}</p><p><strong>家族:</strong> ${item.family}</p>` :
+                     (type === 'items') ? `<p><strong>类别:</strong> ${item.category}</p><p><strong>所有者:</strong> ${item.owner}</p>` : `<p>${item.chapter || item.time || ''}</p>`;
+        return `<div class="index-item" data-id="${item.id}" data-type="${type}"><h4>${title}</h4>${groupTag}${labels}</div>`;
     }).join('');
-
-    grid.querySelectorAll('.index-item').forEach(item => {
-        item.addEventListener('click', () => showIndexItemDetail(item.getAttribute('data-id'), item.getAttribute('data-type')));
-    });
+    grid.querySelectorAll('.index-item').forEach(i => i.addEventListener('click', () => showIndexItemDetail(i.getAttribute('data-id'), i.getAttribute('data-type'))));
 }
 
-// 详情弹窗逻辑
-window.showIndexItemDetail = function(itemId, itemType) {
+function showIndexItemDetail(itemId, itemType) {
     const modal = document.getElementById('detail-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalBody = document.getElementById('modal-body');
-    const list = indexDataCache[itemType] || [];
-    const item = list.find(d => d.id == itemId);
+    const item = (indexDataCache[itemType] || []).find(d => d.id == itemId);
     if(!item) return;
-
-    modalTitle.textContent = item.name || item.title || item.phrase || "详情";
-    let html = "";
-    if (itemType === 'persons') {
-        html = `
-            <div class="rich-detail">
-                <p><strong>籍册：</strong><span style="color:#8b0000; font-weight:bold;">${item.group || '未入册'}</span></p>
-                <p><strong>身份：</strong>${item.identity || '未知'}</p>
-                <p><strong>家族：</strong>${item.family || '未知'}</p>
-                <hr><p><strong>描述：</strong></p><p style="line-height:1.8; text-indent:2em;">${item.description || '暂无描述'}</p>
-            </div>`;
-    } else if (itemType === 'poems') {
-        html = `<p><strong>作者：</strong>${item.author} | <strong>章节：</strong>${item.chapter}</p><div style="background:#fdfcf8; padding:20px; border:1px solid #ddd; white-space:pre-wrap; text-align:center; font-family:serif; line-height:2;">${item.content}</div>`;
-    } else if (itemType === 'proverbs') {
-        html = `<p><strong>出处：</strong>${item.source}</p><p><strong>释义：</strong>${item.meaning}</p><blockquote style="border-left:4px solid #8b0000; padding:10px; font-style:italic;">"${item.content}"</blockquote>`;
-    } else if (itemType === 'items') {
-        html = `<p><strong>类别：</strong>${item.category}</p><p><strong>所有者：</strong>${item.owner}</p><hr><p>${item.description}</p><p style="color:#8b0000; margin-top:10px;"><strong>象征：</strong>${item.significance || ''}</p>`;
-    } else {
-        html = `<p>${item.description || item.meaning || '暂无详细内容'}</p>`;
-    }
-    modalBody.innerHTML = html;
+    document.getElementById('modal-title').textContent = item.name || item.title || item.phrase;
+    let html = (itemType === 'persons') ? `<p><strong>籍册：</strong>${item.group}</p><p><strong>描述：</strong>${item.description}</p>` :
+               (itemType === 'poems') ? `<div style="white-space:pre-wrap;text-align:center;font-family:serif;">${item.content}</div>` : `<p>${item.description || item.meaning || ''}</p>`;
+    document.getElementById('modal-body').innerHTML = html;
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
@@ -354,24 +398,14 @@ window.showIndexItemDetail = function(itemId, itemType) {
 // 辅助函数
 function showEventModal(ev) {
     const modal = document.getElementById('detail-modal');
-    document.getElementById('modal-title').textContent = ev.title || "详情";
-    document.getElementById('modal-body').innerHTML = `<p><strong>时间：</strong>第${ev.year}年 · ${ev.chapter || ''}</p><p style="margin-top:10px;">${ev.description || ''}</p>`;
+    document.getElementById('modal-title').textContent = ev.title || ev.event || "详情";
+    document.getElementById('modal-body').innerHTML = `<p><strong>时间：</strong>第${ev.year}年 · ${ev.chapter || ''}</p><p>${ev.description || ''}</p>`;
     modal.classList.add('active');
     modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
 }
 
-function initSearch() {
-    const input = document.getElementById('global-search');
-    document.getElementById('search-btn')?.addEventListener('click', () => {
-        const q = input.value.trim().toLowerCase();
-        if(!q) return;
-        const res = characters.find(c => c.name.includes(q));
-        if(res) { showSection('characters'); setTimeout(() => showCharacterDetail(res), 200); }
-    });
-}
-
-function getEventCategoryLabel(c) { return {'family':'家族兴衰','love':'情感主线','fate':'命运转折'}[c] || '其他'; }
-function getTypeLabel(t) { return {'main':'主要人物','major':'重要人物','minor':'次要人物'}[t] || '其他'; }
+function getEventCategoryLabel(c) { return {'family':'家族兴衰','love':'情感主线','fate':'命运转折','social':'社会事件'}[c] || '其他'; }
+function getTypeLabel(t) { return {'character':'人物','event':'事件','timeline':'时间轴','poem':'诗词','main':'主要人物','major':'重要人物'}[t] || t; }
 function getNodeColor(t) { return {'main':'#8b0000','major':'#d4af37','minor':'#2e8b57'}[t] || '#6c757d'; }
 function getNodeRadius(t) { return {'main':25,'major':20,'minor':15}[t] || 10; }
 function getLinkColor(t) { return {'blood':'#dc3545','marriage':'#28a745','master-servant':'#fd7e14','emotional':'#17a2b8','family':'#6f42c1'}[t] || '#999'; }
