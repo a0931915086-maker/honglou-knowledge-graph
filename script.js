@@ -311,106 +311,209 @@ function showCharacterDetail(character) {
     `;
 }
 
-// --- 时间轴逻辑 ---
+// 时间轴初始化 (已修复重叠问题，按季节分布)
 function initTimeline() {
     const container = document.getElementById('timeline-container');
-    if(!container || timeline.length === 0) return;
+    if(!container || timeline.length === 0) {
+        container.innerHTML = '<div class="no-data-message"><i class="fas fa-calendar-times"></i><p>暂无时间轴数据</p></div>';
+        return;
+    }
+    
     try {
-        // 创建时间轴数据
-const timelineData = timeline.map(item => {
-    const yearNum = parseInt(item.year) || 1;
-    const yearStr = String(yearNum).padStart(4, '0');
-    let startDate, endDate;
-    
-    // 根据季节设置日期范围
-    if (item.season) {
-        switch(item.season) {
-            case "春": // 春季：3月-5月
-                startDate = `${yearStr}-03-01`;
-                endDate = `${yearStr}-05-31`;
-                break;
-            case "夏": // 夏季：6月-8月
-                startDate = `${yearStr}-06-01`;
-                endDate = `${yearStr}-08-31`;
-                break;
-            case "秋": // 秋季：9月-11月
-                startDate = `${yearStr}-09-01`;
-                endDate = `${yearStr}-11-30`;
-                break;
-            case "冬": // 冬季：12月-次年2月
-                startDate = `${yearStr}-12-01`;
-                // 冬季跨越年份，结束日期为次年2月28日
-                const nextYearStr = String(yearNum + 1).padStart(4, '0');
-                endDate = `${nextYearStr}-02-28`;
-                break;
-            default:
-                // 如果季节值不识别，默认为全年
-                startDate = `${yearStr}-01-01`;
-                endDate = `${yearStr}-12-31`;
-        }
-    } else {
-        // 没有季节信息，默认为全年
-        startDate = `${yearStr}-01-01`;
-        endDate = `${yearStr}-12-31`;
-    }
-    
-    return {
-        id: item.id,
-        content: item.event,
-        start: startDate,
-        end: endDate,
-        type: 'range',
-        className: item.type || 'default',
-        title: item.chapter || '',
-        description: item.description || ''
-    };
-});
-
-// 动态计算时间轴的显示范围（包含所有事件）
-let minDate = '9999-12-31';
-let maxDate = '0001-01-01';
-timelineData.forEach(item => {
-    if (item.start < minDate) minDate = item.start;
-    if (item.end > maxDate) maxDate = item.end;
-});
-
-// 创建时间轴选项
-const options = {
-    width: '100%',
-    height: '100%',
-    min: minDate, // 动态设置最小值
-    max: maxDate, // 动态设置最大值
-    start: minDate,
-    end: maxDate,
-    zoomMin: 1000 * 60 * 60 * 24 * 30 * 3, // 最小缩放为3个月
-    zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, // 最大缩放为20年
-    moveable: true,
-    zoomable: true,
-    orientation: {
-        axis: 'both',
-        item: 'top'
-    },
-    tooltip: {
-        followMouse: true,
-        overflowMethod: 'cap'
-    },
-    format: {
-        minorLabels: {
-            year: 'YYYY年'
-        }
-    }
-};
-        const timelineInstance = new vis.Timeline(container, timelineData, options);
-        document.getElementById('zoom-in')?.addEventListener('click', () => timelineInstance.zoomIn(0.5));
-        document.getElementById('zoom-out')?.addEventListener('click', () => timelineInstance.zoomOut(0.5));
-        document.getElementById('fit-timeline')?.addEventListener('click', () => timelineInstance.fit());
-        timelineInstance.on('click', (props) => {
-            if (props.item) {
-                const item = timeline.find(d => d.id == props.item);
-                if (item) showEventModal({title: item.event, chapter: item.chapter, year: item.year, description: item.description});
+        // 创建分组：每个年份的每个季节作为一个分组
+        const groups = new vis.DataSet();
+        const eventsData = [];
+        
+        // 遍历事件，创建分组和事件
+        timeline.forEach(item => {
+            const yearNum = parseInt(item.year) || 1;
+            const season = item.season || '未知';
+            
+            // 创建分组ID：年份-季节
+            const groupId = `${yearNum}-${season}`;
+            
+            // 如果分组不存在，添加分组
+            if (!groups.get(groupId)) {
+                groups.add({
+                    id: groupId,
+                    content: `第${yearNum}年 ${season}`,
+                    className: `timeline-group ${season}-group`,
+                    order: (yearNum * 10) + getSeasonOrder(season)
+                });
             }
+            
+            // 根据季节计算具体日期
+            const seasonDates = getSeasonDates(yearNum, season);
+            
+            // 创建事件
+            eventsData.push({
+                id: item.id,
+                group: groupId,
+                content: `<div class="timeline-event">
+                            <strong>${item.event}</strong>
+                            <div class="event-chapter">${item.chapter}</div>
+                          </div>`,
+                start: seasonDates.start,
+                end: seasonDates.end,
+                type: 'range',
+                className: `timeline-item ${item.type}`,
+                title: `${item.event} (${item.chapter})`,
+                description: item.description || '',
+                year: yearNum,
+                season: season
+            });
         });
-    } catch (err) { console.error(err); }
+        
+        // 创建时间轴选项
+        const options = {
+            width: '100%',
+            height: '600px',
+            min: '0001-01-01',
+            max: '0020-12-31',
+            start: '0001-01-01',
+            end: '0015-12-31',
+            zoomMin: 1000 * 60 * 60 * 24 * 30 * 3, // 最小缩放为3个月
+            zoomMax: 1000 * 60 * 60 * 24 * 365 * 20, // 最大缩放为20年
+            moveable: true,
+            zoomable: true,
+            orientation: {
+                axis: 'both',
+                item: 'top'
+            },
+            tooltip: {
+                followMouse: true,
+                overflowMethod: 'cap'
+            },
+            format: {
+                minorLabels: {
+                    year: 'YYYY年'
+                }
+            },
+            // 分组配置
+            groupOrder: 'order',
+            groupHeightMode: 'fixed',
+            stack: false, // 禁用堆叠，确保事件不重叠
+            stackSubgroups: false,
+            verticalScroll: true,
+            maxHeight: 600
+        };
+        
+        if (typeof vis !== 'undefined') {
+            // 创建时间轴实例
+            const timelineInstance = new vis.Timeline(container, eventsData, groups, options);
+            
+            // 添加控件事件监听
+            const zoomInBtn = document.getElementById('zoom-in');
+            const zoomOutBtn = document.getElementById('zoom-out');
+            const fitBtn = document.getElementById('fit-timeline');
+
+            if(zoomInBtn) zoomInBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 0.7;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(zoomOutBtn) zoomOutBtn.addEventListener('click', () => {
+                const range = timelineInstance.getWindow();
+                const zoom = (range.end - range.start) * 1.3;
+                const center = (range.start.valueOf() + range.end.valueOf()) / 2;
+                timelineInstance.setWindow(center - zoom/2, center + zoom/2);
+            });
+            
+            if(fitBtn) fitBtn.addEventListener('click', () => {
+                timelineInstance.fit();
+            });
+            
+            // 点击事件显示详情
+            timelineInstance.on('click', function(properties) {
+                if (properties.item) {
+                    const event = timeline.find(e => e.id == properties.item);
+                    if (event) showEventModal(event);
+                }
+            });
+            
+            // 添加悬停效果
+            timelineInstance.on('mouseOver', function(properties) {
+                if (properties.item) {
+                    timelineInstance.setItemCSS(properties.item, {
+                        'box-shadow': '0 4px 8px rgba(0,0,0,0.2)',
+                        'transform': 'scale(1.05)',
+                        'transition': 'all 0.3s ease'
+                    });
+                }
+            });
+            
+            timelineInstance.on('mouseOut', function(properties) {
+                if (properties.item) {
+                    timelineInstance.setItemCSS(properties.item, {
+                        'box-shadow': 'none',
+                        'transform': 'scale(1)'
+                    });
+                }
+            });
+            
+        }
+    } catch (err) {
+        console.error("时间轴渲染出错:", err);
+        container.innerHTML = `
+            <div class="error-notice">
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <h4>时间轴加载失败</h4>
+                        <p>错误: ${err.message}</p>
+                        <small>请检查控制台获取更多信息</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 辅助函数：获取季节顺序
+function getSeasonOrder(season) {
+    const orderMap = {
+        '春': 1,
+        '夏': 2,
+        '秋': 3,
+        '冬': 4,
+        '未知': 5
+    };
+    return orderMap[season] || 5;
+}
+
+// 辅助函数：获取季节的具体日期范围
+function getSeasonDates(year, season) {
+    const yearStr = String(year).padStart(4, '0');
+    
+    switch(season) {
+        case '春':
+            return {
+                start: `${yearStr}-03-01`,
+                end: `${yearStr}-05-31`
+            };
+        case '夏':
+            return {
+                start: `${yearStr}-06-01`,
+                end: `${yearStr}-08-31`
+            };
+        case '秋':
+            return {
+                start: `${yearStr}-09-01`,
+                end: `${yearStr}-11-30`
+            };
+        case '冬':
+            return {
+                start: `${yearStr}-12-01`,
+                end: `${String(year + 1).padStart(4, '0')}-02-28`
+            };
+        default:
+            return {
+                start: `${yearStr}-01-01`,
+                end: `${yearStr}-12-31`
+            };
+    }
 }
 
 // --- 重要事件逻辑 ---
