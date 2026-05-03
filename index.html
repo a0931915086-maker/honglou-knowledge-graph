@@ -240,7 +240,43 @@
             <p>© 2026 红楼梦知识图谱 · 仅供学术研究使用</p>
         </div>
     </footer>
+<!-- 智能体对话窗口 -->
+<div id="ai-chat-container">
+    <div id="ai-ball" onclick="toggleChatWindow()">
+        <i class="fas fa-feather-alt"></i>
+        <span>遥问曹公</span>
+    </div>
 
+    <div id="ai-chat-window" class="chat-hidden">
+        <div class="chat-header">
+            <h3>遥问曹公on onclick="toggleChatWindow()">&times;</button>
+        </div>
+        <div id="chat-messages">
+            <div class="msg bot">小友，此番来到红楼幻境，有何疑问？</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="请教曹先生...">
+            <button onclick="handleSendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<style>
+#ai-chat-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; font-family: "Noto Serif SC", serif; }
+#ai-ball { width: 60px; height: 60px; background: #8b0000; border-radius: 50%; color: #d4af37; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: 0.3s; }
+#ai-ball:hover { transform: scale(1.1); }
+#ai-ball span { font-size: 10px; margin-top: 2px; }
+#ai-chat-window { position: absolute; bottom: 80px; right: 0; width: 320px; height: 450px; background: #fffcf5; border: 2px solid #8b0000; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.chat-hidden { display: none; }
+.chat-header { background: #8b0000; color: #d4af37; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+#chat-messages { flex: 1; padding: 15px; overflow-y: auto; background-image: radial-gradient(#eee 1px, transparent 0); background-size: 20px 20px; }
+.msg { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+.bot { background: #f0e6d2; color: #333; align-self: flex-start; border: 1px solid #d4af37; margin-right: 20%; }
+.user { background: #8b0000; color: #fff; align-self: flex-end; margin-left: 20%; text-align: right; }
+.chat-input-area { display: flex; padding: 10px; background: #fff; border-top: 1px solid #ddd; }
+#user-input { flex: 1; border: 1px solid #ccc; padding: 8px; border-radius: 4px; outline: none; }
+.chat-input-area button { background: #8b0000; color: white; border: none; padding: 0 12px; margin-left: 8px; border-radius: 4px; cursor: pointer; }
+</style>
     <!-- 模态框 -->
     <div id="detail-modal" class="modal">
         <div class="modal-content">
@@ -251,24 +287,7 @@
             <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
- <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.19/libs/cn/index.js"></script>
-<script>
-  new CozeWebSDK.WebChatClient({
-    config: {
-      bot_id: '7635506135771987978',
-    },
-    componentProps: {
-      title: 'Coze',
-    },
-    auth: {
-      type: 'token',
-      token: 'pat_tGrCIbkSiijsEJx1h9xDu6UI7eRTYBweKWP2GfoTOA9ieOTF9MsJRZUlbbme4Lgq',
-      onRefreshToken: function () {
-        return 'pat_tGrCIbkSiijsEJx1h9xDu6UI7eRTYBweKWP2GfoTOA9ieOTF9MsJRZUlbbme4Lgq'
-      }
-    }
-  });
-</script>
+
     <script src="script.js"></script>
 </body>
 </html>
