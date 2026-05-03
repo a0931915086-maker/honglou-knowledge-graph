@@ -261,6 +261,28 @@
     </div>
 </div>
 
+<!-- 智能体对话窗口 -->
+<div id="ai-chat-container">
+    <div id="ai-ball" onclick="toggleChatWindow()">
+        <i class="fas fa-feather-alt"></i>
+        <span>曹公问答</span>
+    </div>
+
+    <div id="ai-chat-window" class="chat-hidden">
+        <div class="chat-header">
+            <h3>曹雪芹智能助手</h3>
+            <button onclick="toggleChatWindow()">&times;</button>
+        </div>
+        <div id="chat-messages">
+            <div class="msg bot">小友，此番来到红楼幻境，有何疑问？</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="请教曹先生...">
+            <button onclick="handleSendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
 <style>
 #ai-chat-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; font-family: "Noto Serif SC", serif; }
 #ai-ball { width: 60px; height: 60px; background: #8b0000; border-radius: 50%; color: #d4af37; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: 0.3s; }
