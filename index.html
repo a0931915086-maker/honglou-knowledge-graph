@@ -251,7 +251,26 @@
             <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
-
+curl --location --request POST "https://cfkm2sfb2c.coze.site/stream_run" \
+  --header "Authorization: Bearer <YOUR_TOKEN>" \
+  --header "Content-Type: application/json" \
+  --data '{
+      "content": {
+        "query": {
+          "prompt": [
+            {
+              "type": "text",
+              "content": {
+                "text": ""
+              }
+            }
+          ]
+        }
+      },
+      "type": "query",
+      "session_id":"Ejzn6Y-2aM944jIZu-gaW",
+      "project_id": 7635463914301718568
+    }'
     <script src="script.js"></script>
 </body>
 </html>
