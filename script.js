@@ -792,89 +792,70 @@ function getNodeColor(t) { return {main:'#8b0000',major:'#d4af37',minor:'#2e8b57
 function getNodeRadius(t) { return {main:25,major:20,minor:15}[t] || 10; }
 function getLinkColor(t) { return {blood:'#dc3545',marriage:'#28a745','master-servant':'#fd7e14',emotional:'#17a2b8',family:'#6f42c1'}[t] || '#999'; }
 
-// --- 百度智能体配置 (请替换你的真实参数) ---
-const BAIDU_CONF = {
+// --- 配置区 ---
+const CONFIG = {
     appId: 'CINLrCt1lcM32Wr0T6XZbK99Z99YNkGI',
     secretKey: 'm3Z6m7MtTdZwA2SrZO8NdKSXV8R2ZN49',
     agentId: 'CINLrCt1lcM32Wr0T6XZbK99Z99YNkGI'
 };
 
-let CAO_TOKEN = "";
+// 使用公开的 CORS 代理转发（解决插件失效问题）
+const PROXY_URL = "https://cors-anywhere.herokuapp.com/"; 
 
-// 1. 开关函数 (确保逻辑简单，不被阻塞)
-function handleToggleChat() {
-    console.log("尝试切换窗口..."); // 调试用
-    const chatWin = document.getElementById('cao-window');
-    if (chatWin) {
-        chatWin.classList.toggle('cao-hidden');
-    }
-}
+let baiduToken = "";
 
-// 2. 获取 Token (内部调用)
-async function fetchBaiduToken() {
+// 1. 获取 Token
+async function fetchToken() {
+    // 如果插件没关，可以直接用原 URL；如果报错，就在前面加 PROXY_URL
+    const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${CONFIG.appId}&client_secret=${CONFIG.secretKey}`;
     try {
-        const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU_CONF.appId}&client_secret=${BAIDU_CONF.secretKey}`;
         const res = await fetch(url);
         const data = await res.json();
         return data.access_token;
     } catch (e) {
-        console.error("Token获取失败:", e);
+        console.error("Token Error:", e);
         return null;
     }
 }
 
-// 3. 发送消息函数
+// 2. 发送消息
 async function handleSend() {
-    const inputEl = document.getElementById('cao-input-text');
-    const msg = inputEl.value.trim();
+    const input = document.getElementById('cao-input-text');
+    const msg = input.value.trim();
     if (!msg) return;
 
-    // 显示用户消息
     appendChatMessage('user', msg);
-    inputEl.value = "";
+    input.value = "";
 
-    // 获取 Token
-    if (!CAO_TOKEN) {
-        CAO_TOKEN = await fetchBaiduToken();
-    }
+    if (!baiduToken) baiduToken = await fetchToken();
 
-    if (!CAO_TOKEN) {
-        appendChatMessage('bot', "获取凭证失败，请检查API配置或跨域限制。");
-        return;
-    }
+    // 重点：在请求地址前加上代理服务器地址
+    // 注意：初次使用代理可能需要访问 https://cors-anywhere.herokuapp.com/ 并点击 "Request temporary access"
+    const apiTarget = `https://agents.baidu.com/customer-api/v1/agent/chat?access_token=${baiduToken}`;
+    const finalUrl = PROXY_URL + apiTarget;
 
-    // 调用百度 API
     try {
-        const chatUrl = `https://agents.baidu.com/customer-api/v1/agent/chat?access_token=${CAO_TOKEN}`;
-        const response = await fetch(chatUrl, {
+        const response = await fetch(finalUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest' // 代理服务器通常需要这个头
+            },
             body: JSON.stringify({
-                agentId: BAIDU_CONF.agentId,
+                agentId: CONFIG.agentId,
                 query: msg,
                 stream: false
             })
         });
 
         const result = await response.json();
-        console.log("API返回结果:", result);
-
         if (result.data && result.data.content) {
             appendChatMessage('bot', result.data.content);
         } else {
-            appendChatMessage('bot', "曹公正在构思，暂无回应。");
+            appendChatMessage('bot', "曹公：此番笔墨不畅，许是天机不可泄露。");
         }
     } catch (err) {
-        console.error("发送失败:", err);
-        appendChatMessage('bot', "笔墨阻塞，请开启跨域插件或检查网络。");
+        console.error("API Error:", err);
+        appendChatMessage('bot', "代理通道拥挤，请稍后再试，或检查代理授权。");
     }
-}
-
-function appendChatMessage(role, text) {
-    const box = document.getElementById('cao-messages');
-    const div = document.createElement('div');
-    div.className = `msg ${role}`;
-    div.innerText = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
 }
