@@ -251,7 +251,7 @@
             <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
-    <style>
+ <style>
       * { box-sizing: border-box; }
       html, body { width: 100%; height: 100%; margin: 0; padding: 8px; }
     </style>
@@ -272,7 +272,7 @@
           cozeWebSDK.contentWindow.postMessage({
             type: 'INIT',
             payload: {
-              token: '<YOUR_TOKEN>',
+              token: 'pat_POy8hGayPgDhDWxZXQ6T14IAweHe9OC4YP55U3wk3FLfoCt8kjVDCE5xGS6AqoOb',
               projectId: '7635463914301718568',
             }
           }, COZE_WEB_SDK_ORIGIN);
@@ -283,10 +283,12 @@
           cozeWebSDK.contentWindow.postMessage({
             type: 'UPDATE_TOKEN',
             payload: {
-              token: '<YOUR_TOKEN>',
+              token: 'pat_POy8hGayPgDhDWxZXQ6T14IAweHe9OC4YP55U3wk3FLfoCt8kjVDCE5xGS6AqoOb',
             }
           }, COZE_WEB_SDK_ORIGIN);
         }
+      });
+        
     <script src="script.js"></script>
 </body>
 </html>
