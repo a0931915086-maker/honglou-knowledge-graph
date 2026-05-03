@@ -251,43 +251,24 @@
             <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
- <style>
-      * { box-sizing: border-box; }
-      html, body { width: 100%; height: 100%; margin: 0; padding: 8px; }
-    </style>
-    <iframe id="coze-web-sdk" src="https://sdk.coze.site"></iframe>
-    <script>
-      const cozeWebSDK = document.getElementById("coze-web-sdk");
-      // sdk origin
-      const COZE_WEB_SDK_ORIGIN = 'https://sdk.coze.site';
-      window.addEventListener('message', (event) => {
-        // 只处理来自 sdk 的消息
-        if (event.origin !== COZE_WEB_SDK_ORIGIN) {
-          return;
-        }
-        const data = event.data;
-        // sdk 资源加载完成的通知，所有消息都必须在此后发送才有效
-        if (data.type === 'IFRAME_READY') {
-          // 必须步骤：初始化 web SDK
-          cozeWebSDK.contentWindow.postMessage({
-            type: 'INIT',
-            payload: {
-              token: 'pat_POy8hGayPgDhDWxZXQ6T14IAweHe9OC4YP55U3wk3FLfoCt8kjVDCE5xGS6AqoOb',
-              projectId: '7635463914301718568',
-            }
-          }, COZE_WEB_SDK_ORIGIN);
-        }
-        // token 过期的通知
-        if (data.type === 'TOKEN_EXPIRED') {
-          // 更新 token
-          cozeWebSDK.contentWindow.postMessage({
-            type: 'UPDATE_TOKEN',
-            payload: {
-              token: 'pat_POy8hGayPgDhDWxZXQ6T14IAweHe9OC4YP55U3wk3FLfoCt8kjVDCE5xGS6AqoOb',
-            }
-          }, COZE_WEB_SDK_ORIGIN);
-        }
-      });
+<script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.19/libs/cn/index.js"></script>
+<script>
+  new CozeWebSDK.WebChatClient({
+    config: {
+      bot_id: '7635506135771987978',
+    },
+    componentProps: {
+      title: 'Coze',
+    },
+    auth: {
+      type: 'token',
+      token: 'pat_tGrCIbkSiijsEJx1h9xDu6UI7eRTYBweKWP2GfoTOA9ieOTF9MsJRZUlbbme4Lgq',
+      onRefreshToken: function () {
+        return 'pat_tGrCIbkSiijsEJx1h9xDu6UI7eRTYBweKWP2GfoTOA9ieOTF9MsJRZUlbbme4Lgq'
+      }
+    }
+  });
+</script>
         
     <script src="script.js"></script>
 </body>
